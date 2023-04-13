@@ -14,33 +14,59 @@ keymap.set("n", "dw", 'vb"_d')
 keymap.set("n", "<C-a>", "gg<S-v>G")
 
 -- Save with root permission (not working for now)
---vim.api.nvim_create_user_command('W', 'w !sudo tee > /dev/null %', {})
+-- vim.api.nvim_create_user_command('W', 'w !sudo tee > /dev/null %', {})
 
--- New tab
-keymap.set("n", "te", ":tabedit")
--- Close tab
-keymap.set("n", "td", ":tabclose")
+keymap.set("i", "jj", "<Esc>", {
+    noremap = true,
+    silent = true
+})
+keymap.set("i", "っj", "<Esc>", {
+    noremap = true,
+    silent = true
+})
 
--- Split window
-keymap.set("n", "ss", ":split<Return><C-w>w")
-keymap.set("n", "sv", ":vsplit<Return><C-w>w")
--- Move window
---keymap.set('n', '<Space>', '<C-w>w')
-keymap.set("", "sh", "<C-w>h")
-keymap.set("", "sk", "<C-w>k")
-keymap.set("", "sj", "<C-w>j")
-keymap.set("", "sl", "<C-w>l")
+if not vim.g.vscode then
+    -- New tab
+    keymap.set("n", "te", ":tabedit")
+    -- Close tab
+    keymap.set("n", "td", ":tabclose")
 
--- Resize window
-keymap.set("n", "<C-w><left>", "<C-w><")
-keymap.set("n", "<C-w><right>", "<C-w>>")
-keymap.set("n", "<C-w><up>", "<C-w>+")
-keymap.set("n", "<C-w><down>", "<C-w>-")
+    -- Split window
+    keymap.set("n", "ss", ":split<Return><C-w>w")
+    keymap.set("n", "sv", ":vsplit<Return><C-w>w")
+    -- Move window
+    -- keymap.set('n', '<Space>', '<C-w>w')
+    keymap.set("", "sh", "<C-w>h")
+    keymap.set("", "sk", "<C-w>k")
+    keymap.set("", "sj", "<C-w>j")
+    keymap.set("", "sl", "<C-w>l")
 
--- Original settings
-keymap.set("n", "<Space>s", ":source $MYVIMRC<Return>", { noremap = true }) -- init.vim読み込み
-keymap.set("n", "<Space>w", ":<C-u>w<Return>", { noremap = true }) -- init.vim読み込み
-keymap.set("n", "<Space>q", ":<C-u>q<Return>", { noremap = true }) -- init.vim読み込み
+    -- Resize window
+    keymap.set("n", "<C-w><left>", "<C-w><")
+    keymap.set("n", "<C-w><right>", "<C-w>>")
+    keymap.set("n", "<C-w><up>", "<C-w>+")
+    keymap.set("n", "<C-w><down>", "<C-w>-")
 
-keymap.set("i", "jj", "<Esc>", { noremap = true, silent = true })
-keymap.set("i", "っj", "<Esc>", { noremap = true, silent = true })
+    -- Original settings
+    keymap.set("n", "<Space>s", ":source $MYVIMRC<Return>", {
+        noremap = true
+    }) -- init.vim読み込み
+    keymap.set("n", "<Space>w", ":<C-u>w<Return>", {
+        noremap = true
+    }) -- init.vim読み込み
+    keymap.set("n", "<Space>q", ":<C-u>q<Return>", {
+        noremap = true
+    }) -- init.vim読み込み
+else
+    -- Original settings
+    keymap.set("n", "<Leader>s", ":source $MYVIMRC<Return>", {
+        noremap = true
+    }) -- init.vim読み込み
+    keymap.set("n", "<Leader>w", "<cmd>call VSCodeNotify('workbench.action.files.save')<cr>", {
+        noremap = true
+    })
+    keymap.set("n", "<Leader>q", "<cmd>call VSCodeNotify('workbench.action.closeActiveEditor')<cr>", {
+        noremap = true
+    })
+
+end
