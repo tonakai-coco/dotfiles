@@ -23,9 +23,15 @@ Set-PsFzfOption -PSReadlineChordProvider 'Ctrl+f' -PSReadlineChordReverseHistory
 Set-Alias vim nvim
 Set-Alias ll ls
 Set-Alias grep findstr
+Set-Alias fb fzf-bat
 
-# Utilities
+# Function
 function which ($command) {
   Get-Command -Name $command -ErrorAction SilentlyContinue |
     Select-Object -ExpandProperty Path -ErrorAction SilentlyContinue
 }
+
+function fzf-bat {
+  fzf --reverse --inline-info --ansi --preview "bat --color=always --style=header,grid --line-range :100 {}"
+}
+
