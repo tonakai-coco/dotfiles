@@ -35,3 +35,15 @@ function fzf-bat {
   fzf --reverse --inline-info --ansi --preview "bat --color=always --style=header,grid --line-range :100 {}"
 }
 
+function pwdcp {
+  pwd | Set-Clipboard
+}
+
+function openex {
+  param([string]$path = ".")
+  Invoke-Item -Path $path
+}
+
+function getpath ($path) {
+  Get-Item $path | Select-Object -ExpandProperty FullName | Set-Clipboard
+}
