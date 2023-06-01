@@ -47,3 +47,7 @@ function openex {
 function getpath ($path) {
   Get-Item $path | Select-Object -ExpandProperty FullName | Set-Clipboard
 }
+
+function merge ($path1, $path2) {
+    & "C:\Program Files\Araxis\Araxis Merge\Merge.exe" $path1 $path2
+}
