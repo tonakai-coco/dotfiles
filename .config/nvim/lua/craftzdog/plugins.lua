@@ -68,6 +68,15 @@ if not vim.g.vscode then
 				})
 			end,
 		})
+		use({
+			"nvim-tree/nvim-tree.lua",
+			requires = {
+				"nvim-tree/nvim-web-devicons", -- optional
+			},
+			config = function()
+				require("nvim-tree").setup({})
+			end,
+		})
 		-- Vim configuration for Rust
 		--	use({
 		--		"rust-lang/rust.vim",
