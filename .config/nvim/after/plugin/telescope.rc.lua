@@ -68,6 +68,9 @@ if not vim.g.vscode then
 	vim.keymap.set("n", ";e", function()
 		builtin.diagnostics()
 	end)
+	vim.keymap.set("n", ";k", function()
+		builtin.keymaps()
+	end)
 	vim.keymap.set("n", "sf", function()
 		telescope.extensions.file_browser.file_browser({
 			path = "%:p:h",
