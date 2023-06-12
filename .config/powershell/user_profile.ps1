@@ -35,7 +35,7 @@ function fzf-bat {
   fzf --reverse --inline-info --ansi --preview "bat --color=always --style=header,grid --line-range :100 {}"
 }
 
-function pwdcp {
+function pwdclip {
   pwd | Set-Clipboard
 }
 
@@ -50,4 +50,8 @@ function getpath ($path) {
 
 function merge ($path1, $path2) {
     & "C:\Program Files\Araxis\Araxis Merge\Merge.exe" $path1 $path2
+}
+
+function treeclip {
+   tree /f | Set-Clipboard
 }
