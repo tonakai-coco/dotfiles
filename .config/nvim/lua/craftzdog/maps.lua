@@ -25,6 +25,11 @@ keymap.set("i", "っj", "<Esc>", {
     silent = true,
 })
 
+-- Turn off IME when leaving insert
+keymap.set("i", "<Esc>", "<Esc>:set iminsert=0<cr>", {
+    noremap = true,
+})
+
 -- vim.api.nvim_set_keymap("n", "S*", [[:%s/\<]] .. vim.fn.expand("<cword>") .. [[\>//gc<left><left>]], { noremap = true })
 keymap.set("n", "S*", ":%s/", { noremap = true })
 
