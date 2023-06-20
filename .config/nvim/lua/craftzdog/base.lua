@@ -50,15 +50,3 @@ if not vim.g.vscode then
   augroup END
 ]])
 end
-
--- Turn off IME when InsertLave and CmdLineLeave
-if vim.fn.executable("zenhan") then
-    vim.cmd("autocmd InsertLeave * :call system('zenhan 0')")
-    vim.cmd("autocmd CmdlineLeave * :call system('zenhan 0')")
-end
-
-vim.g.im_select_default = "com.apple.keylayout.ABC"
-if vim.fn.executable("im-select") then
-    vim.cmd("autocmd InsertLeave * :call system('im-select com.apple.keylayout.ABC')")
-    vim.cmd("autocmd CmdlineLeave * :call system('im-select com.apple.keylayout.ABC')")
-end
