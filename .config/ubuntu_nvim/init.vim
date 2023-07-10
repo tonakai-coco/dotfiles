@@ -59,7 +59,7 @@ nmap <C-a> gg<S-v>G
 noremap S* :%s/
 
 " New tab
-nmap te :tabeit
+nmap te :tabedit
 " Close tab
 nmap td :tabclose
 
