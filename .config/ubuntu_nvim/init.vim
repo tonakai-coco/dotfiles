@@ -34,7 +34,7 @@ command! Myterm call Myterm()
 
 "起動時にターミナルウィンドウを設置
 if has('vim_starting')
-    Myterm
+    " Myterm
 endif
 
 "上のエディタウィンドウと下のターミナルウィンドウ(ターミナル挿入モード)を行き来
