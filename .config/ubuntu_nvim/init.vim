@@ -55,6 +55,27 @@ inoremap <C-h> <Left>
 inoremap <C-l> <Right>
 inoremap <C-k> <Up>
 inoremap <C-j> <Down>
+nmap <C-a> gg<S-v>G
+noremap S* :%s/
+
+" New tab
+nmap te :tabeit
+" Close tab
+nmap td :tabclose
+
+" Split window
+nmap ss :split<Return><C-w>w
+" Move window
+map sh <C-w>h
+map sk <C-w>k
+map sj <C-w>j
+map sl <C-w>l
+
+" Resize window
+nmap <C-w><left> <C-w><
+nmap <C-w><right> <C-w>>
+nmap <C-w><up> <C-w>+
+nmap <C-w><down> <C-w>-
 
 "// PLUGIN SETTINGS
 call plug#begin('~/.config/nvim/plugged')
