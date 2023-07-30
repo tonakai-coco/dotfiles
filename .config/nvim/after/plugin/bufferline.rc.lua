@@ -35,6 +35,6 @@ if not vim.g.vscode then
 		},
 	})
 
-	vim.keymap.set("n", "<Tab>", "<Cmd>BufferLineCycleNext<CR>", {})
-	vim.keymap.set("n", "<S-Tab>", "<Cmd>BufferLineCyclePrev<CR>", {})
+	vim.keymap.set("n", "<C-n>", "<Cmd>BufferLineCycleNext<CR>", {})
+	vim.keymap.set("n", "<C-p>", "<Cmd>BufferLineCyclePrev<CR>", {})
 end
