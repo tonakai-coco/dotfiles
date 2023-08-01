@@ -26,6 +26,8 @@ if not vim.g.vscode then
     vim.keymap.set("n", "gp", "<Cmd>Lspsaga peek_definition<CR>", opts)
     vim.keymap.set("n", "gr", "<Cmd>Lspsaga rename<CR>", opts)
     vim.keymap.set("n", "go", "<Cmd>Lspsaga outline<CR>", opts)
+    vim.keymap.set("n", "<A-t>", "<Cmd>Lspsaga term_toggle<CR>", opts)
+    vim.keymap.set("t", "<A-t>", "<Cmd>Lspsaga term_toggle<CR>", opts)
 
     -- code action
     local codeaction = require("lspsaga.codeaction")
