@@ -24,6 +24,7 @@ Set-Alias vim nvim
 Set-Alias ll ls
 Set-Alias grep findstr
 Set-Alias fb fzf-bat
+Set-Alias tig 'C:\Program Files\Git\usr\bin\tig.exe'
 
 # Function
 function which ($command) {
