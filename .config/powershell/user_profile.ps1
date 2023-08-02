@@ -25,6 +25,7 @@ Set-Alias ll ls
 Set-Alias grep findstr
 Set-Alias fb fzf-bat
 Set-Alias tig 'C:\Program Files\Git\usr\bin\tig.exe'
+Set-Alias less 'C:\Program Files\Git\usr\bin\less.exe'
 
 # Function
 function which ($command) {
@@ -36,16 +37,16 @@ function fzf-bat {
   fzf --reverse --inline-info --ansi --preview "bat --color=always --style=header,grid --line-range :100 {}"
 }
 
-function pwdclip {
+function pwdc {
   pwd | Set-Clipboard
 }
 
-function openex {
+function opex {
   param([string]$path = ".")
   Invoke-Item -Path $path
 }
 
-function getpath ($path) {
+function pathc ($path) {
   Get-Item $path | Select-Object -ExpandProperty FullName | Set-Clipboard
 }
 
@@ -53,6 +54,6 @@ function merge ($path1, $path2) {
     & "C:\Program Files\Araxis\Araxis Merge\Merge.exe" $path1 $path2
 }
 
-function treeclip {
+function treec {
    tree /f | Set-Clipboard
 }
