@@ -6,6 +6,9 @@ if ($env:WT_PROFILE_ID) {
     oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH\powerlevel10k_rainbow.omp.json" | Invoke-Expression
 }
 
+# 文字コードをUTF-8に変更
+chcp 65001
+
 # Icons
 Import-Module -Name Terminal-Icons
 
@@ -57,3 +60,4 @@ function merge ($path1, $path2) {
 function treec {
    tree /f | Set-Clipboard
 }
+
