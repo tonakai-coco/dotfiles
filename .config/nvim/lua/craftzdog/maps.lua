@@ -1,7 +1,10 @@
 vim.g.mapleader = " " -- <Leader>をスペースに設定
 
 local keymap = vim.keymap
+keymap.set({ "n", "v" }, "<Space>", "<Nop>", { silent = true })
 keymap.set("n", "x", '"_x')
+keymap.set("n", "k", "v:count == 0 ? 'gk' : 'k'", { expr = true, silent = true })
+keymap.set("n", "j", "v:count == 0 ? 'gj' : 'j'", { expr = true, silent = true })
 
 -- Increment/decrement
 keymap.set("n", "+", "<C-a>")
