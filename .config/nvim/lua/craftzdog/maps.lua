@@ -59,14 +59,13 @@ if not vim.g.vscode then
 	keymap.set("n", "<C-w><up>", "<C-w>+")
 	keymap.set("n", "<C-w><down>", "<C-w>-")
 
-	-- Original settings
-	keymap.set("n", "<Space>s", ":source $MYVIMRC<Return>", {
+	-- keymap.set("n", "<Space>s", ":source $MYVIMRC<Return>", {
+	-- 	noremap = true,
+	-- }) -- init.vim読み込み
+	keymap.set("n", "<Leader>w", ":<C-u>w<Return>", {
 		noremap = true,
 	}) -- init.vim読み込み
-	keymap.set("n", "<Space>w", ":<C-u>w<Return>", {
-		noremap = true,
-	}) -- init.vim読み込み
-	keymap.set("n", "<Space>q", ":<C-u>q<Return>", {
+	keymap.set("n", "<Leader>q", ":<C-u>q<Return>", {
 		noremap = true,
 	}) -- init.vim読み込み
 
@@ -75,10 +74,9 @@ if not vim.g.vscode then
 		noremap = true,
 	})
 else
-	-- Original settings
-	keymap.set("n", "<Leader>s", ":source $MYVIMRC<Return>", {
-		noremap = true,
-	}) -- init.vim読み込み
+	-- keymap.set("n", "<Leader>s", ":source $MYVIMRC<Return>", {
+	-- 	noremap = true,
+	-- }) -- init.vim読み込み
 	keymap.set("n", "<Leader>w", "<cmd>call VSCodeNotify('workbench.action.files.save')<cr>", {
 		noremap = true,
 	})
