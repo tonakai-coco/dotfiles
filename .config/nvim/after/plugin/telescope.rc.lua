@@ -47,30 +47,49 @@ if not vim.g.vscode then
 
 	telescope.load_extension("file_browser")
 
-	vim.keymap.set("n", ";f", function()
+	vim.keymap.set("n", "<leader><space>", function()
+		builtin.resume()
+	end, { desc = "Resume" })
+
+	vim.keymap.set("n", "<leader>/", function()
+		builtin.current_buffer_fuzzy_find()
+	end, { desc = "[/] Fuzzily find in current buffer" })
+
+	vim.keymap.set("n", "<leader>sf", function()
 		builtin.find_files({
 			no_ignore = false,
 			hidden = true,
 		})
-	end)
-	vim.keymap.set("n", ";r", function()
+	end, { desc = "[S]earch [F]iles" })
+
+	vim.keymap.set("n", "<leader>sg", function()
 		builtin.live_grep()
-	end)
-	vim.keymap.set("n", "\\\\", function()
+	end, { desc = "[S]earch by [G]rep" })
+
+	vim.keymap.set("n", "<leader>sb", function()
 		builtin.buffers()
-	end)
-	vim.keymap.set("n", ";t", function()
+	end, { desc = "[S]earch [B]uffers" })
+
+	vim.keymap.set("n", "<leader>sh", function()
 		builtin.help_tags()
-	end)
-	vim.keymap.set("n", ";;", function()
-		builtin.resume()
-	end)
-	vim.keymap.set("n", ";e", function()
+	end, { desc = "[S]earch [H]elp" })
+
+	vim.keymap.set("n", "<leader>sd", function()
 		builtin.diagnostics()
-	end)
-	vim.keymap.set("n", ";k", function()
+	end, { desc = "[S]earch [D]iagnostics" })
+
+	vim.keymap.set("n", "<leader>sk", function()
 		builtin.keymaps()
-	end)
+	end, { desc = "[S]earch [K]eymaps" })
+
+	vim.keymap.set("n", "<leader>sw", function()
+		builtin.grep_string()
+	end, { desc = "[S]earch [W]ord" })
+
+	vim.keymap.set("n", "<leader>?", function()
+		builtin.oldfiles()
+	end, { desc = "[S]earch [?] Oldfiles" })
+
 	vim.keymap.set("n", "sf", function()
 		telescope.extensions.file_browser.file_browser({
 			path = "%:p:h",

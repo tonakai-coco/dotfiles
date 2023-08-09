@@ -15,6 +15,9 @@ if not vim.g.vscode then
 	})
 
 	local diagnostic = require("lspsaga.diagnostic")
+	vim.keymap.set("n", "<leader>df", vim.diagnostic.open_float, { desc = "Open floating diagnostic message" })
+	vim.keymap.set("n", "<leader>dq", vim.diagnostic.setloclist, { desc = "Open diagnostic list" })
+
 	local opts = { noremap = true, silent = true }
 	vim.keymap.set("n", "<C-j>", "<Cmd>Lspsaga diagnostic_jump_next<CR>", opts)
 	-- vim.keymap.set("n", "gl", "<Cmd>Lspsaga show_diagnostic<CR>", opts)
