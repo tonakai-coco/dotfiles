@@ -1,3 +1,5 @@
+vim.loader.enable()
+
 require("craftzdog.base")
 require("craftzdog.highlights")
 require("craftzdog.maps")
@@ -9,11 +11,11 @@ local is_win = has("win32") or has("win64")
 local is_wsl = has("wsl")
 
 if is_mac == 1 then
-  require("craftzdog.macos")
+	require("craftzdog.macos")
 end
 if is_win == 1 then
-  require("craftzdog.windows")
+	require("craftzdog.windows")
 end
 if is_wsl == 1 then
-  require("craftzdog.wsl")
+	require("craftzdog.wsl")
 end
