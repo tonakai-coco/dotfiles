@@ -113,6 +113,9 @@ if not vim.g.vscode then
                 })
             end,
         })
-        use("dstein64/vim-startuptime") -- Measure startup time
+        use({
+            "dstein64/vim-startuptime",
+            event = { "CmdlineEnter" },
+        }) -- Measure startup time
     end)
 end
