@@ -1,6 +1,5 @@
-
 function pwdc
-    echo "pwd | fish_clipboard_copy"
+    echo "pwd | pbcopy"
     pwd
-    pwd | fish_clipboard_copy
+    pwd | pbcopy
 end
