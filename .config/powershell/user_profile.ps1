@@ -61,3 +61,6 @@ function treec {
    tree /f | Set-Clipboard
 }
 
+function touch ($name) {
+    New-Item -ItemType File $name
+}
