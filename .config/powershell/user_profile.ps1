@@ -3,7 +3,8 @@ Import-Module posh-git
 # Set-PoshPrompt Paradox
 if ($env:WT_PROFILE_ID) {
     # Windows Terminalから実行されたときだけ変更する設定をここに記述する
-    oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH\powerlevel10k_rainbow.omp.json" | Invoke-Expression
+    # oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH\powerlevel10k_rainbow.omp.json" | Invoke-Expression
+    oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH\slimfat.omp.json" | Invoke-Expression
 }
 
 # 文字コードをUTF-8に変更
