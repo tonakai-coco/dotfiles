@@ -67,3 +67,15 @@ function treec {
 function touch ($name) {
     New-Item -ItemType File $name
 }
+
+function .. {
+    cd ..
+}
+
+function ... {
+    cd ..\..
+}
+
+function .... {
+    cd ..\..\..
+}
