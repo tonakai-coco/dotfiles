@@ -1,9 +1,13 @@
-vim.loader.enable()
+-- bootstrap lazy.nvim, LazyVim and your plugins
+if vim.loader then
+  vim.loader.enable()
+end
 
-require("craftzdog.base")
-require("craftzdog.highlights")
-require("craftzdog.maps")
-require("craftzdog.plugins")
+if not vim.g.vscode then
+  require("config.lazy")
+else
+  require("config.vscode_keymap")
+end
 
 local has = vim.fn.has
 local is_mac = has("mac")
@@ -11,11 +15,11 @@ local is_win = has("win32") or has("win64")
 local is_wsl = has("wsl")
 
 if is_mac == 1 then
-	require("craftzdog.macos")
+  require("config.macos")
 end
 if is_win == 1 then
-	require("craftzdog.windows")
+  require("config.windows")
 end
 if is_wsl == 1 then
-	require("craftzdog.wsl")
+  require("config.wsl")
 end
