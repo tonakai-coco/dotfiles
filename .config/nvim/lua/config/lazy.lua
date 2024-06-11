@@ -35,6 +35,8 @@ require("lazy").setup({
     { import = "lazyvim.plugins.extras.editor.inc-rename" },
     { import = "lazyvim.plugins.extras.vscode" },
     { import = "lazyvim.plugins.extras.editor.refactoring" },
+    { import = "lazyvim.plugins.extras.editor.outline" },
+    { import = "lazyvim.plugins.extras.lang.cmake" },
 
     -- use mini.starter instead of alpha
     { import = "lazyvim.plugins.extras.ui.mini-starter" },
