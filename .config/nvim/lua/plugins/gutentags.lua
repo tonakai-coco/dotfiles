@@ -8,7 +8,7 @@ return {
 
   {
     "skywind3000/gutentags_plus",
-    enable = true,
+    enable = false,
     config = function()
       vim.g.gutentags_plus_switch = 1
     end,
