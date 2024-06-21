@@ -40,6 +40,7 @@ require("lazy").setup({
     { import = "lazyvim.plugins.extras.coding.neogen" },
     -- use mini.starter instead of alpha
     { import = "lazyvim.plugins.extras.ui.mini-starter" },
+    { import = "lazyvim.plugins.extras.coding.yanky" },
     -- import/override with your plugins
     { import = "plugins" },
   },
