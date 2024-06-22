@@ -4,3 +4,4 @@ abbr -a -- ga 'git add .'
 abbr -a -- gf 'git fetch'
 abbr -a -- gp 'git pull'
 abbr -a -- ll 'exa -l -g --icons'
+abbr -a -- rm 'trash -F' # brew install trash
