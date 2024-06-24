@@ -36,6 +36,7 @@ Set-Alias less 'C:\Program Files\Git\usr\bin\less.exe'
 Set-Alias gs git-status
 Set-Alias rm File-ToRecycleBin
 Set-Alias rmdir Folder-ToRecycleBin
+Set-Alias watch Watch-Command
 
 # Function
 function which ($command)
@@ -121,5 +122,14 @@ function Folder-ToRecycleBin($target_dir_path)
     } else
     {
         Write-Output "'$target_dir_path' is not directory or not found."
+    }
+}
+
+# Watch-Command 'echo "test"' 5のように実行すると、echo "test"を5秒ごとに実行する
+function Watch-Command($command, $interval = 1)
+{
+    while ($true)
+    { 
+        Invoke-Expression $command; Start-Sleep -Seconds $interval 
     }
 }
