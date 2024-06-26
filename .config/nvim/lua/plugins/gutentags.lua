@@ -6,11 +6,14 @@ return {
     end,
   },
 
-  -- {
-  --   "skywind3000/gutentags_plus",
-  --   enable = false,
-  --   config = function()
-  --     vim.g.gutentags_plus_switch = 1
-  --   end,
-  -- },
+  {
+    "skywind3000/gutentags_plus",
+    enable = true,
+    config = function()
+      vim.g.gutentags_plus_switch = 1
+    end,
+    keys = function()
+      return {}
+    end,
+  },
 }
