@@ -14,7 +14,7 @@ require("lazy").setup({
       "LazyVim/LazyVim",
       import = "lazyvim.plugins",
       opts = {
-        colorscheme = "solarized-osaka",
+        colorscheme = "flow",
         news = {
           lazyvim = true,
           neovim = true,
@@ -71,3 +71,6 @@ require("lazy").setup({
     },
   },
 })
+
+-- require("flow").setup({})
+-- vim.cmd("colorcheme flow")
