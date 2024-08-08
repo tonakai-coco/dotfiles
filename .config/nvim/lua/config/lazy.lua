@@ -71,6 +71,3 @@ require("lazy").setup({
     },
   },
 })
-
--- require("flow").setup({})
--- vim.cmd("colorcheme flow")
