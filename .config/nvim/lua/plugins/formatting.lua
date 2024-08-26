@@ -6,6 +6,12 @@ return {
         c = { "clang-format" },
         cpp = { "clang-format" },
       },
+      formatters = {
+        clang_format = {
+          prepend_args = { "--style=file", "--fallback-style=LLVM" },
+          rootMarkers = { ".git" },
+        },
+      },
     },
   },
 }
