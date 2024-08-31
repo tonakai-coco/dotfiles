@@ -41,7 +41,7 @@ return {
 
       local opts = {
         options = {
-          theme = "auto",
+          theme = "onedark",
           globalstatus = vim.o.laststatus == 3,
           disabled_filetypes = { statusline = { "dashboard", "alpha", "ministarter" } },
         },
@@ -108,6 +108,7 @@ return {
             },
           },
           lualine_y = {
+            { "encoding" },
             { "progress", separator = " ", padding = { left = 1, right = 0 } },
             { "location", padding = { left = 0, right = 1 } },
           },
