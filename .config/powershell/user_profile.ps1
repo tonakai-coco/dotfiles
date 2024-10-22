@@ -133,3 +133,26 @@ function Watch-Command($command, $interval = 1)
         Invoke-Expression $command; Start-Sleep -Seconds $interval 
     }
 }
+
+function zip
+{
+    param (
+        [string]$destination,
+        [string]$source
+    )
+
+    # 圧縮処理
+    Compress-Archive -Path $source -DestinationPath $destination
+}
+
+function unzip
+{
+    param (
+        [string]$zipFile,
+        [string]$destination = (Get-Location)
+    )
+
+    # 展開処理
+    Expand-Archive -Path $zipFile -DestinationPath $destination
+}
+
