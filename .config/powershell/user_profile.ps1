@@ -1,6 +1,6 @@
-if ($env:WT_PROFILE_ID)
+if ($env:WT_PROFILE_ID -and $env:TERM_PROGRAM -ne 'vscode')
 {
-    # Windows Terminalから実行されたときだけ変更する設定をここに記述する
+    # Windows Terminalから実行されたとき、かつvscodeのターミナル起動ではない場合にだけ変更する設定をここに記述する
     # Prompt
     # Set-PoshPrompt Paradox
     Import-Module posh-git
