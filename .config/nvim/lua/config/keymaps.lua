@@ -60,3 +60,29 @@ keymap.set("t", "<Esc>", "<C-\\><C-n>", {
 keymap.set("n", "<C-j>", function()
   vim.diagnostic.goto_next()
 end, opts)
+
+-- Copy File Path
+local function copy_current_file_path()
+  local path = vim.fn.expand("%:.")
+  vim.fn.setreg("*", path)
+  vim.api.nvim_echo({ { "Copied: " .. path, "None" } }, true, {})
+end
+
+keymap.set("n", "<Leader>yp", copy_current_file_path, {
+  noremap = true,
+  silent = true,
+  desc = "Copy current file path",
+})
+
+-- Copy File Name
+local function copy_current_file_name()
+  local fileName = vim.fn.expand("%:t")
+  vim.fn.setreg("*", fileName)
+  vim.api.nvim_echo({ { "Copied: " .. fileName, "None" } }, true, {})
+end
+
+keymap.set("n", "<Leader>yn", copy_current_file_name, {
+  noremap = true,
+  silent = true,
+  desc = "Copy current file name",
+})
