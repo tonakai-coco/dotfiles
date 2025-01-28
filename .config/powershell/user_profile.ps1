@@ -11,6 +11,7 @@ if ($env:WT_PROFILE_ID -and $env:TERM_PROGRAM -ne 'vscode')
 
     # 文字コードをUTF-8に変更
     chcp 65001
+    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
     # Icons
     Import-Module -Name Terminal-Icons
