@@ -39,6 +39,7 @@ Set-Alias gs git-status
 Set-Alias rm File-ToRecycleBin
 Set-Alias rmdir Folder-ToRecycleBin
 Set-Alias watch Watch-Command
+New-Alias -Name "dirsize" -Value Get-FolderSize
 
 # Function
 function which ($command)
@@ -157,4 +158,14 @@ function unzip
     # 展開処理
     Expand-Archive -Path $zipFile -DestinationPath $destination
 }
+
+function Get-FolderSize
+{
+    param([string]$Path)
+    $folder = Get-ChildItem -Path $Path -Recurse | Measure-Object -Property Length -Sum
+    $size = $folder.Sum / 1MB
+    Write-Host ("{0:N2} MB" -f $size)
+
+}
+
 
