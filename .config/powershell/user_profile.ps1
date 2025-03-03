@@ -178,3 +178,10 @@ function Convert-ToUtf8FromShiftJis
     $outputFile = [System.IO.Path]::GetFileNameWithoutExtension($inputFile) + "_utf8.csv"
     Get-Content -Encoding shift-jis $inputFile | Out-File -Encoding utf-8 $outputFile
 }
+
+function lsn
+{
+    $files = Get-ChildItem | ForEach-Object { $_.Name }
+    $files -join "`t"
+}
+
