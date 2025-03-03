@@ -40,6 +40,7 @@ Set-Alias rm File-ToRecycleBin
 Set-Alias rmdir Folder-ToRecycleBin
 Set-Alias watch Watch-Command
 New-Alias -Name "dirsize" -Value Get-FolderSize
+New-Alias -Name "convutf8" -Value Convert-ToUtf8FromShiftJis
 
 # Function
 function which ($command)
@@ -168,4 +169,12 @@ function Get-FolderSize
 
 }
 
+function Convert-ToUtf8FromShiftJis
+{
+    param (
+        [string]$inputFile
+    )
 
+    $outputFile = [System.IO.Path]::GetFileNameWithoutExtension($inputFile) + "_utf8.csv"
+    Get-Content -Encoding shift-jis $inputFile | Out-File -Encoding utf-8 $outputFile
+}
