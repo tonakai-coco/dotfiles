@@ -41,11 +41,11 @@ require("lazy").setup({
     -- use mini.starter instead of alpha
     { import = "lazyvim.plugins.extras.ui.mini-starter" },
     { import = "lazyvim.plugins.extras.coding.yanky" },
-    -- import/override with your plugins
-    { import = "plugins" },
     --- Lang Rust
-    { "LazyVim/LazyVim", import = "lazyvim.plugins" },
     { import = "lazyvim.plugins.extras.lang.rust" },
+    --- ui
+    { import = "lazyvim.plugins.extras.ui.smear-cursor" },
+    -- import/override with your plugins
     { import = "plugins" },
   },
   defaults = {
