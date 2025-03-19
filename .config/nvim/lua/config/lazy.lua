@@ -46,6 +46,7 @@ require("lazy").setup({
     { import = "lazyvim.plugins.extras.ui.mini-starter" }, -- use mini.starter instead of alpha
     { import = "lazyvim.plugins.extras.ui.smear-cursor" },
     { import = "lazyvim.plugins.extras.ui.treesitter-context" },
+    { import = "lazyvim.plugins.extras.ui.Indent-blankline" },
     -- vscode
     { import = "lazyvim.plugins.extras.vscode" },
     -- import/override with your plugins
