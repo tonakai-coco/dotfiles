@@ -157,7 +157,7 @@ function unzip
     )
 
     # 展開処理
-    Expand-Archive -Path $zipFile -DestinationPath $destination
+    Expand-Archive -Force -Path $zipFile -DestinationPath $destination
 }
 
 function Get-FolderSize
