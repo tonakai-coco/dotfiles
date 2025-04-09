@@ -1,6 +1,7 @@
 return {
   {
     "craftzdog/solarized-osaka.nvim",
+    enable = false,
     lazy = true,
     priority = 1000,
     opts = function()
@@ -9,6 +10,7 @@ return {
       }
     end,
   },
+  { "cocopon/iceberg.vim" },
   -- {
   -- "0xstepit/flow.nvim",
   -- lazy = false,
