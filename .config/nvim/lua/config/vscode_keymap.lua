@@ -121,3 +121,7 @@ keymap.set({ "n", "v" }, "<Leader>yp", "<cmd>call VSCodeNotify('copyFilePath')<c
   noremap = true,
 })
 
+-- シンボルに移動
+keymap.set({ "n", "v" }, "<Leader>cs", "<cmd>call VSCodeNotify('workbench.action.gotoSymbol')<cr>", {
+  noremap = true,
+})
