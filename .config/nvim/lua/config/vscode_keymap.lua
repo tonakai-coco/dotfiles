@@ -115,3 +115,9 @@ keymap.set({ "n", "v" }, "<Leader>aa", "<cmd>call VSCodeNotify('workbench.panel.
 keymap.set({ "n", "v" }, "<Leader>ae", "<cmd>call VSCodeNotify('github.copilot.chat.explain.palette')<cr>", {
   noremap = true,
 })
+
+-- アクティブファイルのパスのコピー
+keymap.set({ "n", "v" }, "<Leader>yp", "<cmd>call VSCodeNotify('copyFilePath')<cr>", {
+  noremap = true,
+})
+
