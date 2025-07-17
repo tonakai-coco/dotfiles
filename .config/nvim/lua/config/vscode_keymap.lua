@@ -111,8 +111,18 @@ keymap.set({ "n", "v" }, "<Leader>aa", "<cmd>call VSCodeNotify('workbench.panel.
   noremap = true,
 })
 
--- これを説明する
+-- Github Copilot Chatの説明を表示する
 keymap.set({ "n", "v" }, "<Leader>ae", "<cmd>call VSCodeNotify('github.copilot.chat.explain.palette')<cr>", {
+  noremap = true,
+})
+
+-- Github Copilot インラインチャット
+keymap.set({ "n", "v" }, "<Leader>ai", "<cmd>call VSCodeNotify('inlineChat.start')<cr>", {
+  noremap = true,
+})
+
+-- Github Copilot クイックチャット
+keymap.set({ "n", "v" }, "<Leader>aq", "<cmd>call VSCodeNotify('workbench.action.openQuickChat')<cr>", {
   noremap = true,
 })
 
