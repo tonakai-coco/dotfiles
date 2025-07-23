@@ -110,7 +110,7 @@ function File-ToRecycleBin($target_file_path)
     if ((Test-Path $target_file_path) -And ((Test-Path -PathType Leaf (Get-Item $target_file_path))))
     {
         $fullpath = (Get-Item $target_file_path).FullName
-        [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile($fullpath,'OnlyErrorDialogs','SendToRecycleBin')
+        [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile($fullpath, 'OnlyErrorDialogs', 'SendToRecycleBin')
     } else
     {
         Write-Output "'$target_file_path' is not file or not found."
@@ -122,7 +122,7 @@ function Folder-ToRecycleBin($target_dir_path)
     if ((Test-Path $target_dir_path) -And ((Test-Path -PathType Container (Get-Item $target_dir_path))))
     {
         $fullpath = (Get-Item $target_dir_path).FullName
-        [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteDirectory($fullpath,'OnlyErrorDialogs','SendToRecycleBin')
+        [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteDirectory($fullpath, 'OnlyErrorDialogs', 'SendToRecycleBin')
     } else
     {
         Write-Output "'$target_dir_path' is not directory or not found."
@@ -133,8 +133,8 @@ function Folder-ToRecycleBin($target_dir_path)
 function Watch-Command($command, $interval = 1)
 {
     while ($true)
-    { 
-        Invoke-Expression $command; Start-Sleep -Seconds $interval 
+    {
+        Invoke-Expression $command; Start-Sleep -Seconds $interval
     }
 }
 
@@ -185,3 +185,15 @@ function lsn
     $files -join "`t"
 }
 
+# yaziコマンドのラッパー関数
+function y
+{
+    $tmp = (New-TemporaryFile).FullName
+    yazi $args --cwd-file="$tmp"
+    $cwd = Get-Content -Path $tmp -Encoding UTF8
+    if (-not [String]::IsNullOrEmpty($cwd) -and $cwd -ne $PWD.Path)
+    {
+        Set-Location -LiteralPath (Resolve-Path -LiteralPath $cwd).Path
+    }
+    Remove-Item -Path $tmp
+}
