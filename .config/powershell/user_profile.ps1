@@ -196,7 +196,8 @@ function Convert-ToUtf8FromShiftJis
         [string]$inputFile
     )
 
-    $outputFile = [System.IO.Path]::GetFileNameWithoutExtension($inputFile) + "_utf8.csv"
+    $ext = [System.IO.Path]::GetExtension($inputFile)
+    $outputFile = [System.IO.Path]::GetFileNameWithoutExtension($inputFile) + "_utf8" + $ext
     Get-Content -Encoding shift-jis $inputFile | Out-File -Encoding utf-8 $outputFile
 }
 
