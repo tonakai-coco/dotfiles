@@ -22,6 +22,9 @@ if ($env:WT_PROFILE_ID -and $env:TERM_PROGRAM -ne 'vscode')
 
 }
 
+# zoxide
+Invoke-Expression (& { (zoxide init powershell | Out-String) })
+
 # PSReadLine
 Set-PSReadLineOption -EditMode Emacs
 Set-PSReadLineOption -BellStyle None
