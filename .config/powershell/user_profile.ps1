@@ -25,6 +25,9 @@ if ($env:WT_PROFILE_ID -and $env:TERM_PROGRAM -ne 'vscode')
 # zoxide
 Invoke-Expression (& { (zoxide init powershell | Out-String) })
 
+# mise
+mise activate pwsh | Out-String | Invoke-Expression
+
 # PSReadLine
 Set-PSReadLineOption -EditMode Emacs
 Set-PSReadLineOption -BellStyle None
@@ -150,7 +153,8 @@ function zip
 
     # 圧縮処理 (7-Zip)
     $sevenZip = 'C:\Program Files\7-Zip\7z.exe'
-    if (!(Test-Path $sevenZip)) {
+    if (!(Test-Path $sevenZip))
+    {
         Write-Error "7z.exeが見つかりません: $sevenZip"
         return
     }
@@ -159,7 +163,8 @@ function zip
     $quotedSrc = '"' + $source + '"'
     $cmd = "$sevenZip a $quotedDest $quotedSrc"
     $proc = Start-Process -FilePath $sevenZip -ArgumentList @('a', $destination, $source) -NoNewWindow -Wait -PassThru
-    if ($proc.ExitCode -ne 0) {
+    if ($proc.ExitCode -ne 0)
+    {
         Write-Error "7z.exeによる圧縮に失敗しました (ExitCode: $($proc.ExitCode))"
     }
 }
@@ -173,13 +178,15 @@ function unzip
 
     # 展開処理 (7-Zip)
     $sevenZip = 'C:\Program Files\7-Zip\7z.exe'
-    if (!(Test-Path $sevenZip)) {
+    if (!(Test-Path $sevenZip))
+    {
         Write-Error "7z.exeが見つかりません: $sevenZip"
         return
     }
     $oArg = "-o$destination"
     $proc = Start-Process -FilePath $sevenZip -ArgumentList @('x', $zipFile, $oArg, '-y') -NoNewWindow -Wait -PassThru
-    if ($proc.ExitCode -ne 0) {
+    if ($proc.ExitCode -ne 0)
+    {
         Write-Error "7z.exeによる展開に失敗しました (ExitCode: $($proc.ExitCode))"
     }
 }
