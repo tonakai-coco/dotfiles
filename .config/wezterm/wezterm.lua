@@ -6,7 +6,7 @@ local wezterm = require("wezterm")
 ----------------------------------------------------
 local config = wezterm.config_builder()
 config.automatically_reload_config = true
-config.font_size = 12.0
+config.font_size = 12.5
 config.use_ime = true
 config.window_background_opacity = 0.85
 config.macos_window_background_blur = 20
@@ -30,6 +30,9 @@ config.colors = {
 	},
 	compose_cursor = "orange",
 }
+
+-- フォント設定
+wezterm.font("Hack", { weight = "Regular", stretch = "Normal", style = "Normal" })
 
 ----------------------------------------------------
 -- keybinds
