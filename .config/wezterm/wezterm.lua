@@ -1,7 +1,9 @@
 -- Pull in the wezterm API
 local wezterm = require("wezterm")
 
--- This will hold the configuration.
+----------------------------------------------------
+-- config
+----------------------------------------------------
 local config = wezterm.config_builder()
 config.automatically_reload_config = true
 config.font_size = 12.0
@@ -26,8 +28,20 @@ config.colors = {
 	tab_bar = {
 		inactive_tab_edge = "none",
 	},
+	compose_cursor = "orange",
 }
 
+----------------------------------------------------
+-- keybinds
+----------------------------------------------------
+config.disable_default_key_bindings = true
+config.keys = require("keybinds").keys
+config.key_tables = require("keybinds").key_tables
+config.leader = { key = "t", mods = "CTRL", timeout_milliseconds = 2000 }
+
+----------------------------------------------------
+-- event handlers
+----------------------------------------------------
 local SOLID_LEFT_ARROW = wezterm.nerdfonts.ple_lower_right_triangle
 local SOLID_RIGHT_ARROW = wezterm.nerdfonts.ple_upper_left_triangle
 
