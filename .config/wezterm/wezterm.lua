@@ -6,6 +6,7 @@ local wezterm = require("wezterm")
 ----------------------------------------------------
 local config = wezterm.config_builder()
 config.automatically_reload_config = true
+config.window_close_confirmation = "NeverPrompt"
 config.font_size = 12.5
 config.use_ime = true
 config.window_background_opacity = 0.75
