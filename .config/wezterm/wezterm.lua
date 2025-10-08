@@ -10,9 +10,20 @@ local triple = wezterm.target_triple
 if string.find(triple, "windows") then
 	-- Windows
 	config.default_prog = { "pwsh.exe", "-NoLogo" }
+	config.font_size = 9.5
+	config.font = require("wezterm").font_with_fallback({
+		{
+			family = "Hack NF",
+			weight = "Bold",
+			stretch = "Normal",
+			style = "Normal",
+		},
+	})
 elseif string.find(triple, "apple") then
 	-- macOS (Apple Silicon / Intel)
 	-- config.default_prog = { "zsh" }
+	config.font_size = 12.5
+	wezterm.font("Hack", { weight = "Regular", stretch = "Normal", style = "Normal" })
 elseif string.find(triple, "linux") then
 	-- Linux
 	config.enable_wayland = false
@@ -25,12 +36,11 @@ end
 config.automatically_reload_config = true
 config.window_close_confirmation = "NeverPrompt"
 config.enable_scroll_bar = true
-config.font_size = 12.5
 config.use_ime = true
 config.window_background_opacity = 0.75
 config.macos_window_background_blur = 30
 config.window_decorations = "RESIZE"
-config.hide_tab_bar_if_only_one_tab = true
+config.hide_tab_bar_if_only_one_tab = false
 config.color_scheme = "iceberg-dark"
 
 config.window_frame = {
@@ -50,9 +60,6 @@ config.colors = {
 	},
 	compose_cursor = "orange",
 }
-
--- フォント設定
-wezterm.font("Hack", { weight = "Regular", stretch = "Normal", style = "Normal" })
 
 ----------------------------------------------------
 -- keybinds

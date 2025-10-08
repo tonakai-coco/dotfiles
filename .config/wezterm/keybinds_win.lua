@@ -15,6 +15,8 @@ return {
 		{ key = "c", mods = "CTRL|SHIFT", action = act.CopyTo("Clipboard") },
 		-- 貼り付け
 		{ key = "v", mods = "CTRL|SHIFT", action = act.PasteFrom("Clipboard") },
+		-- 検索
+		{ key = "f", mods = "CTRL|SHIFT", action = act.Search("CurrentSelectionOrEmptyString") },
 
 		-- タブ切替 Ctrl+Shift + 数字
 		{ key = "1", mods = "CTRL|SHIFT", action = act.ActivateTab(0) },
@@ -28,3 +30,4 @@ return {
 		{ key = "9", mods = "CTRL|SHIFT", action = act.ActivateTab(-1) },
 	},
 }
+

@@ -15,6 +15,8 @@ return {
 		{ key = "c", mods = "SUPER", action = act.CopyTo("Clipboard") },
 		-- 貼り付け
 		{ key = "v", mods = "SUPER", action = act.PasteFrom("Clipboard") },
+		-- 検索
+		{ key = "f", mods = "SUPER", action = act.Search("CurrentSelectionOrEmptyString") },
 
 		-- タブ切替 Cmd + 数字
 		{ key = "1", mods = "SUPER", action = act.ActivateTab(0) },

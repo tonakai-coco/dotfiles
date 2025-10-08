@@ -1,4 +1,4 @@
-if ($env:WT_PROFILE_ID -and $env:TERM_PROGRAM -ne 'vscode')
+if ($env:TERM_PROGRAM -ne 'vscode')
 {
     # Windows Terminalから実行されたとき、かつvscodeのターミナル起動ではない場合にだけ変更する設定をここに記述する
     # Prompt
