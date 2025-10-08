@@ -1,10 +1,27 @@
 -- Pull in the wezterm API
 local wezterm = require("wezterm")
 
+local config = wezterm.config_builder()
+
+----------------------------------------------------
+-- OS別設定
+----------------------------------------------------
+local triple = wezterm.target_triple
+if string.find(triple, "windows") then
+	-- Windows
+	config.default_prog = { "pwsh.exe", "-NoLogo" }
+elseif string.find(triple, "apple") then
+	-- macOS (Apple Silicon / Intel)
+	-- config.default_prog = { "zsh" }
+elseif string.find(triple, "linux") then
+	-- Linux
+	config.enable_wayland = false
+	config.default_prog = { "bash" }
+end
+
 ----------------------------------------------------
 -- config
 ----------------------------------------------------
-local config = wezterm.config_builder()
 config.automatically_reload_config = true
 config.window_close_confirmation = "NeverPrompt"
 config.enable_scroll_bar = true
