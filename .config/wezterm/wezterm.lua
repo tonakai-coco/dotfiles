@@ -58,8 +58,42 @@ wezterm.font("Hack", { weight = "Regular", stretch = "Normal", style = "Normal" 
 -- keybinds
 ----------------------------------------------------
 config.disable_default_key_bindings = true
-config.keys = require("keybinds").keys
-config.key_tables = require("keybinds").key_tables
+
+-- キーバインド設定
+-- 1. 共通のキーバインドを読み込む
+local common_binds = require("keybinds_common")
+local keybinds = {
+	keys = common_binds.keys or {},
+	key_tables = common_binds.key_tables or {},
+}
+
+-- 2. OS固有のキーバインドを読み込んでマージする
+local os_binds_file = nil
+if string.find(triple, "apple") then
+	os_binds_file = "keybinds_mac"
+elseif string.find(triple, "windows") then
+	os_binds_file = "keybinds_win"
+end
+
+-- pcall を使って安全に require する
+if os_binds_file then
+	local ok, os_binds = pcall(require, os_binds_file)
+	if ok and os_binds then
+		-- `keys` テーブル (配列) を連結する
+		for _, key in ipairs(os_binds.keys or {}) do
+			table.insert(keybinds.keys, key)
+		end
+		-- `key_tables` テーブル (マップ) をマージする
+		if os_binds.key_tables then
+			for name, keys in pairs(os_binds.key_tables) do
+				keybinds.key_tables[name] = keys
+			end
+		end
+	end
+end
+
+config.keys = keybinds.keys
+config.key_tables = keybinds.key_tables
 config.leader = { key = "t", mods = "CTRL", timeout_milliseconds = 2000 }
 
 ----------------------------------------------------
