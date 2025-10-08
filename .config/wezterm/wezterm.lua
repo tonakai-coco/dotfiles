@@ -41,7 +41,8 @@ config.window_background_opacity = 0.75
 config.macos_window_background_blur = 30
 config.window_decorations = "RESIZE"
 config.hide_tab_bar_if_only_one_tab = false
-config.color_scheme = "iceberg-dark"
+-- config.color_scheme = "iceberg-dark"
+config.color_scheme = "Builtin Solarized Dark"
 
 config.window_frame = {
 	inactive_titlebar_bg = "none",
