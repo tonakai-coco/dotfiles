@@ -19,11 +19,15 @@ if string.find(triple, "windows") then
 			style = "Normal",
 		},
 	})
+	config.window_background_opacity = 0
+	config.win32_system_backdrop = "Acrylic"
 elseif string.find(triple, "apple") then
 	-- macOS (Apple Silicon / Intel)
 	-- config.default_prog = { "zsh" }
 	config.font_size = 12.5
 	wezterm.font("Hack", { weight = "Regular", stretch = "Normal", style = "Normal" })
+	config.window_background_opacity = 0.75
+	config.macos_window_background_blur = 30
 elseif string.find(triple, "linux") then
 	-- Linux
 	config.enable_wayland = false
@@ -37,8 +41,6 @@ config.automatically_reload_config = true
 config.window_close_confirmation = "NeverPrompt"
 config.enable_scroll_bar = true
 config.use_ime = true
-config.window_background_opacity = 0.75
-config.macos_window_background_blur = 30
 config.window_decorations = "RESIZE"
 config.hide_tab_bar_if_only_one_tab = false
 -- config.color_scheme = "iceberg-dark"
