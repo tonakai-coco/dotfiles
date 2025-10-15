@@ -19,7 +19,7 @@ if string.find(triple, "windows") then
 			style = "Normal",
 		},
 	})
-	config.window_background_opacity = 0
+	config.window_background_opacity = 0.50
 	config.win32_system_backdrop = "Acrylic"
 elseif string.find(triple, "apple") then
 	-- macOS (Apple Silicon / Intel)
@@ -44,6 +44,7 @@ config.use_ime = true
 config.window_decorations = "RESIZE"
 config.hide_tab_bar_if_only_one_tab = false
 -- config.color_scheme = "iceberg-dark"
+-- config.color_scheme = "iceberg-light"
 config.color_scheme = "Builtin Solarized Dark"
 
 config.window_frame = {
