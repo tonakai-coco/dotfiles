@@ -131,6 +131,11 @@ keymap.set({ "n", "v" }, "<Leader>yp", "<cmd>call VSCodeNotify('copyFilePath')<c
   noremap = true,
 })
 
+-- アクティブファイルの相対パスのコピー
+keymap.set({ "n", "v" }, "<Leader>yap", "<cmd>call VSCodeNotify('copyRelativeFilePath')<cr>", {
+  noremap = true,
+})
+
 -- シンボルに移動
 keymap.set({ "n", "v" }, "<Leader>cs", "<cmd>call VSCodeNotify('workbench.action.gotoSymbol')<cr>", {
   noremap = true,
