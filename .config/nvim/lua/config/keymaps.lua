@@ -30,9 +30,9 @@ keymap.set("v", "v", "<C-v>", {
 -- New tab
 keymap.set("n", "te", ":tabedit")
 
--- Switch tab
-keymap.set("n", "<tab>", ":tabnext<Return>", opts)
-keymap.set("n", "<s-tab>", ":tabprev<Return>", opts)
+-- NOTE: <Tab> と <C-i> は同じキーコードのため Ctrl-i のジャンプ履歴に影響しないようにする
+keymap.set("n", "<leader>tn", ":tabnext<Return>", opts)
+keymap.set("n", "<leader>tp", ":tabprev<Return>", opts)
 
 -- Split window
 keymap.set("n", "ss", ":split<Return><C-w>w")
