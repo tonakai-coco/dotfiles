@@ -8,6 +8,16 @@ vim.opt.fileencoding = "utf-8"
 vim.wo.number = true
 vim.wo.signcolumn = "yes"
 
+-- Ensure tree-sitter parsers installed under stdpath("data") are on the runtime path
+local data_site = vim.fn.stdpath("data") .. "/site"
+
+if not vim.tbl_contains(vim.opt.runtimepath:get(), data_site) then
+  vim.opt.runtimepath:append(data_site)
+end
+if not vim.tbl_contains(vim.opt.packpath:get(), data_site) then
+  vim.opt.packpath:append(data_site)
+end
+
 vim.opt.title = true
 vim.opt.autoindent = true
 vim.opt.smartindent = true
