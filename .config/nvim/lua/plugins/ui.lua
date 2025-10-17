@@ -3,10 +3,22 @@ return {
   {
     "akinsho/bufferline.nvim",
     event = "VeryLazy",
-    keys = {
-      { "<Tab>", "<Cmd>BufferLineCycleNext<CR>", desc = "Next tab" },
-      { "<S-Tab>", "<Cmd>BufferLineCyclePrev<CR>", desc = "Prev tab" },
-    },
+    keys = function(_, keys)
+      local filtered = {}
+      for _, key in ipairs(keys) do
+        if key[1] ~= "<Tab>" and key[1] ~= "<S-Tab>" then
+          table.insert(filtered, key)
+        end
+      end
+
+      -- NOTE: <Tab> と <C-i> は同じキーコードなので Bufferline の既定マッピングを無効化
+      vim.list_extend(filtered, {
+        { "<leader>bn", "<Cmd>BufferLineCycleNext<CR>", desc = "Next tab" },
+        { "<leader>bp", "<Cmd>BufferLineCyclePrev<CR>", desc = "Prev tab" },
+      })
+
+      return filtered
+    end,
     opts = {
       options = {
         mode = "tabs",
