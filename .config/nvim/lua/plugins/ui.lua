@@ -1,4 +1,36 @@
 return {
+  {
+    "nvim-neo-tree/neo-tree.nvim",
+    init = function()
+      vim.g.neo_tree_remove_legacy_commands = 1
+
+      vim.api.nvim_create_autocmd("VimEnter", {
+        once = true,
+        callback = function()
+          vim.schedule(function()
+            if vim.fn.exists(":Neotree") ~= 2 then
+              return
+            end
+
+            for _, win in ipairs(vim.api.nvim_list_wins()) do
+              local buf = vim.api.nvim_win_get_buf(win)
+              if vim.bo[buf].filetype == "neo-tree" then
+                pcall(vim.cmd, "Neotree close")
+                break
+              end
+            end
+          end)
+        end,
+      })
+    end,
+    opts = function(_, opts)
+      opts = opts or {}
+      opts.filesystem = opts.filesystem or {}
+      opts.filesystem.hijack_netrw_behavior = "disabled"
+      return opts
+    end,
+  },
+
   -- buffer line
   {
     "akinsho/bufferline.nvim",
