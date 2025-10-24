@@ -235,3 +235,8 @@ function y
     }
     Remove-Item -Path $tmp
 }
+
+function wc
+{
+    $input | Measure-Object -Line -Word -Character
+}
