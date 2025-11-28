@@ -45,7 +45,13 @@ config.window_decorations = "RESIZE"
 config.hide_tab_bar_if_only_one_tab = false
 -- config.color_scheme = "iceberg-dark"
 -- config.color_scheme = "iceberg-light"
-config.color_scheme = "Builtin Solarized Dark"
+-- config.color_scheme = "Builtin Solarized Dark"
+
+-- kanagawaカラースキームを適用
+local kanagawa = require("kanagawa")
+for key, value in pairs(kanagawa) do
+	config[key] = value
+end
 
 config.window_frame = {
 	inactive_titlebar_bg = "none",
