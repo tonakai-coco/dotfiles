@@ -11,6 +11,7 @@ return {
     end,
   },
   { "cocopon/iceberg.vim" },
+  { "rebelot/kanagawa.nvim" },
   -- {
   -- "0xstepit/flow.nvim",
   -- lazy = false,
