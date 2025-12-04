@@ -3,11 +3,11 @@ if ($env:TERM_PROGRAM -ne 'vscode')
     # Windows Terminalから実行されたとき、かつvscodeのターミナル起動ではない場合にだけ変更する設定をここに記述する
     # Prompt
     # Set-PoshPrompt Paradox
-    Import-Module posh-git
+    # Import-Module posh-git
     # oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH\powerlevel10k_rainbow.omp.json" | Invoke-Expression
     # oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH\slimfat.omp.json" | Invoke-Expression
     # oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH\gmay.omp.json" | Invoke-Expression
-    oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH\takuya.omp.json" | Invoke-Expression
+    oh-my-posh init pwsh --config "C:\Tools\oh-my-posh-themes\takuya.omp.json" | Invoke-Expression
 
     # 文字コードをUTF-8に変更
     chcp 65001
@@ -17,8 +17,8 @@ if ($env:TERM_PROGRAM -ne 'vscode')
     Import-Module -Name Terminal-Icons
     #
     # Fzf
-    Import-Module PSFzf
-    Set-PsFzfOption -PSReadlineChordProvider 'Ctrl+f' -PSReadlineChordReverseHistory 'Ctrl+r'
+    # Import-Module PSFzf
+    # Set-PsFzfOption -PSReadlineChordProvider 'Ctrl+f' -PSReadlineChordReverseHistory 'Ctrl+r'
 
 }
 

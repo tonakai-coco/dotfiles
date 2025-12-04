@@ -13,13 +13,13 @@ if string.find(triple, "windows") then
 	config.font_size = 9.5
 	config.font = require("wezterm").font_with_fallback({
 		{
-			family = "Hack NF",
+			family = "Hack Nerd Font",
 			weight = "Bold",
 			stretch = "Normal",
 			style = "Normal",
 		},
 	})
-	config.window_background_opacity = 0.50
+	config.window_background_opacity = 0.70
 	config.win32_system_backdrop = "Acrylic"
 elseif string.find(triple, "apple") then
 	-- macOS (Apple Silicon / Intel)
