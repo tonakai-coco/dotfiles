@@ -158,16 +158,12 @@ function zip
     )
 
     # 圧縮処理 (7-Zip)
-    $sevenZip = 'C:\Program Files\7-Zip\7z.exe'
-    if (!(Test-Path $sevenZip))
+    $sevenZip = '7z.exe'
+    if (!(Get-Command $sevenZip -ErrorAction SilentlyContinue))
     {
-        Write-Error "7z.exeが見つかりません: $sevenZip"
+        Write-Error "7z.exeが見つかりません。PATHに7z.exeが含まれていることを確認してください。"
         return
     }
-    # クォートでパスのスペース対応
-    $quotedDest = '"' + $destination + '"'
-    $quotedSrc = '"' + $source + '"'
-    $cmd = "$sevenZip a $quotedDest $quotedSrc"
     $proc = Start-Process -FilePath $sevenZip -ArgumentList @('a', $destination, $source) -NoNewWindow -Wait -PassThru
     if ($proc.ExitCode -ne 0)
     {
@@ -183,10 +179,10 @@ function unzip
     )
 
     # 展開処理 (7-Zip)
-    $sevenZip = 'C:\Program Files\7-Zip\7z.exe'
-    if (!(Test-Path $sevenZip))
+    $sevenZip = '7z.exe'
+    if (!(Get-Command $sevenZip -ErrorAction SilentlyContinue))
     {
-        Write-Error "7z.exeが見つかりません: $sevenZip"
+        Write-Error "7z.exeが見つかりません。PATHに7z.exeが含まれていることを確認してください。"
         return
     }
     $oArg = "-o$destination"
