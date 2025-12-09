@@ -25,7 +25,7 @@ elseif string.find(triple, "apple") then
 	-- macOS (Apple Silicon / Intel)
 	-- config.default_prog = { "zsh" }
 	config.font_size = 12.5
-	wezterm.font("Hack", { weight = "Regular", stretch = "Normal", style = "Normal" })
+	wezterm.font("HackGen35 Console NF", { weight = "Regular", stretch = "Normal", style = "Normal" })
 	config.window_background_opacity = 0.75
 	config.macos_window_background_blur = 30
 elseif string.find(triple, "linux") then
