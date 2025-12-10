@@ -13,7 +13,7 @@ if string.find(triple, "windows") then
 	config.font_size = 9.5
 	config.font = require("wezterm").font_with_fallback({
 		{
-			family = "Hack Nerd Font",
+			family = "HackGen35 Console NF",
 			weight = "Bold",
 			stretch = "Normal",
 			style = "Normal",
