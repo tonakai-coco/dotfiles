@@ -122,6 +122,8 @@ return {
 
 		-- 設定再読み込み
 		{ key = "r", mods = "SHIFT|CTRL", action = act.ReloadConfiguration },
+		-- QuickSelect起動
+		{ key = "Space", mods = "CTRL|SHIFT", action = act.QuickSelect },
 		-- キーテーブル用
 		{ key = "s", mods = "LEADER", action = act.ActivateKeyTable({ name = "resize_pane", one_shot = false }) },
 		{
