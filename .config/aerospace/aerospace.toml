@@ -256,6 +256,10 @@ if.app-id = 'notion.id'
 run = 'move-node-to-workspace N'
 
 [[on-window-detected]]
+if.app-id = 'com.playstation.RemotePlay'
+run = 'move-node-to-workspace P'
+
+[[on-window-detected]]
 if.app-id = 'com.github.wez.wezterm'
 run = 'move-node-to-workspace T'
 
