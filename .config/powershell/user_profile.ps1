@@ -112,6 +112,12 @@ function ....
     cd ..\..\..
 }
 
+function cl($path = ".")
+{
+    Set-Location $path
+    Get-ChildItem
+}
+
 function git-status
 {
     git status
