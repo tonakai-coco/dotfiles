@@ -18,7 +18,12 @@ end
 wezterm.on("update-right-status", function(window, pane)
 	local name = window:active_key_table()
 	if name then
-		name = "TABLE: " .. name
+		local display_names = {
+			adjust_mode = "ADJUST (hjkl:pane, =-0:font)",
+			activate_pane = "PANE SELECT",
+			copy_mode = "COPY",
+		}
+		name = display_names[name] or ("TABLE: " .. name)
 	end
 	window:set_right_status(name or "")
 end)
@@ -103,11 +108,7 @@ return {
 		-- 選択中のPaneのみ表示
 		{ key = "z", mods = "LEADER", action = act.TogglePaneZoomState },
 
-		-- フォントサイズ切替
-		{ key = "+", mods = "CTRL", action = act.IncreaseFontSize },
-		{ key = "-", mods = "CTRL", action = act.DecreaseFontSize },
-		-- フォントサイズのリセット
-		{ key = "0", mods = "CTRL", action = act.ResetFontSize },
+		-- フォントサイズ切替は adjust_mode (Leader + s) で行う
 
 		-- タブ切替 Cmd + 数字
 		-- { key = "1", mods = "SUPER", action = act.ActivateTab(0) },
@@ -124,8 +125,8 @@ return {
 		{ key = "r", mods = "SHIFT|CTRL", action = act.ReloadConfiguration },
 		-- QuickSelect起動
 		{ key = "Space", mods = "CTRL|SHIFT", action = act.QuickSelect },
-		-- キーテーブル用
-		{ key = "s", mods = "LEADER", action = act.ActivateKeyTable({ name = "resize_pane", one_shot = false }) },
+		-- キーテーブル用（調整モード: パネルサイズ + フォントサイズ）
+		{ key = "s", mods = "LEADER", action = act.ActivateKeyTable({ name = "adjust_mode", one_shot = false }) },
 		{
 			key = "a",
 			mods = "LEADER",
@@ -135,15 +136,23 @@ return {
 	-- キーテーブル
 	-- https://wezfurlong.org/wezterm/config/key-tables.html
 	key_tables = {
-		-- Paneサイズ調整 leader + s
-		resize_pane = {
+		-- 調整モード（パネルサイズ + フォントサイズ） leader + s
+		adjust_mode = {
+			-- パネルサイズ調整 (hjkl)
 			{ key = "h", action = act.AdjustPaneSize({ "Left", 1 }) },
 			{ key = "l", action = act.AdjustPaneSize({ "Right", 1 }) },
 			{ key = "k", action = act.AdjustPaneSize({ "Up", 1 }) },
 			{ key = "j", action = act.AdjustPaneSize({ "Down", 1 }) },
 
-			-- Cancel the mode by pressing escape
+			-- フォントサイズ調整 (=/-/0)
+			{ key = "=", action = act.IncreaseFontSize },
+			{ key = "+", action = act.IncreaseFontSize }, -- Shift押下時も対応
+			{ key = "-", action = act.DecreaseFontSize },
+			{ key = "0", action = act.ResetFontSize },
+
+			-- モード終了
 			{ key = "Enter", action = "PopKeyTable" },
+			{ key = "Escape", action = "PopKeyTable" },
 		},
 		activate_pane = {
 			{ key = "h", action = act.ActivatePaneDirection("Left") },
