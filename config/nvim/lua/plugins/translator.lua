@@ -1,16 +1,19 @@
 -- vim-translator: English <-> Japanese translation
 -- Keymap:
 --   <leader>tw - Translate and show in window (Visual/Normal)
---   <leader>tr - Translate and replace text (Visual/Normal)
+--   <leader>tr - Translate and replace to Japanese (Visual/Normal)
+--   <leader>tR - Translate and replace to English (Visual)
 return {
   "voldikss/vim-translator",
   keys = {
     -- Window display (non-destructive)
     { "<leader>tw", "<Plug>TranslateW", mode = "n", desc = "Translate (window)" },
     { "<leader>tw", "<Plug>TranslateWV", mode = "v", desc = "Translate (window)" },
-    -- Replace with translation
-    { "<leader>tr", "<Plug>TranslateR", mode = "n", desc = "Translate (replace)" },
-    { "<leader>tr", "<Plug>TranslateRV", mode = "v", desc = "Translate (replace)" },
+    -- Replace with translation (to Japanese)
+    { "<leader>tr", "<Plug>TranslateR", mode = "n", desc = "Translate to Japanese (replace)" },
+    { "<leader>tr", "<Plug>TranslateRV", mode = "v", desc = "Translate to Japanese (replace)" },
+    -- Replace with translation (to English)
+    { "<leader>tR", "<Cmd>TranslateR --target_lang=en<CR>", mode = "v", desc = "Translate to English (replace)" },
   },
   config = function()
     -- Use Google Translate (no API key required)
