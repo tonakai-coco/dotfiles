@@ -11,7 +11,12 @@ return {
     end,
   },
   { "cocopon/iceberg.vim" },
-  { "rebelot/kanagawa.nvim" },
+  {
+    "rebelot/kanagawa.nvim",
+    opts = {
+      transparent = true,
+    },
+  },
   -- {
   -- "0xstepit/flow.nvim",
   -- lazy = false,
