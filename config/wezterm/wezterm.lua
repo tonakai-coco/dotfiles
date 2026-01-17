@@ -58,6 +58,12 @@ config.window_frame = {
 	active_titlebar_bg = "none",
 }
 
+-- アクティブペイン強調表示（非アクティブペインを暗くする）
+config.inactive_pane_hsb = {
+	saturation = 0.7, -- 彩度を下げる
+	brightness = 0.6, -- 明度を下げて暗くする
+}
+
 config.window_background_gradient = {
 	colors = { "#000000" },
 }
