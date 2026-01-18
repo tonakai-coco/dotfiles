@@ -60,8 +60,8 @@ config.window_frame = {
 
 -- アクティブペイン強調表示（非アクティブペインを暗くする）
 config.inactive_pane_hsb = {
-	saturation = 0.7, -- 彩度を下げる
-	brightness = 0.6, -- 明度を下げて暗くする
+	saturation = 0.8, -- 彩度を下げる
+	brightness = 0.45, -- 明度を下げて暗くする
 }
 
 config.window_background_gradient = {
