@@ -147,7 +147,7 @@ return {
 			-- パネル位置入れ替え
 			{ key = "r", action = act.RotatePanes("Clockwise") }, -- 時計回りに回転
 			{ key = "R", action = act.RotatePanes("CounterClockwise") }, -- 反時計回りに回転
-			{ key = "s", action = act.PaneSelect({ mode = "SwapWithActiveKeepFocus" }) }, -- 選択してスワップ
+			{ key = "s", action = act.PaneSelect({ mode = "SwapWithActiveKeepFocus", alphabet = "1234567890" }) }, -- 選択してスワップ
 
 			-- フォントサイズ調整 (=/-/0)
 			{ key = "=", action = act.IncreaseFontSize },
