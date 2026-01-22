@@ -19,7 +19,7 @@ wezterm.on("update-right-status", function(window, pane)
 	local name = window:active_key_table()
 	if name then
 		local display_names = {
-			adjust_mode = "ADJUST (hjkl:pane, =-0:font)",
+			adjust_mode = "ADJUST (hjkl:size, r/R:rotate, s:swap, =-0:font)",
 			activate_pane = "PANE SELECT",
 			copy_mode = "COPY",
 		}
@@ -136,13 +136,18 @@ return {
 	-- キーテーブル
 	-- https://wezfurlong.org/wezterm/config/key-tables.html
 	key_tables = {
-		-- 調整モード（パネルサイズ + フォントサイズ） leader + s
+		-- 調整モード（パネルサイズ + フォントサイズ + パネル入れ替え） leader + s
 		adjust_mode = {
 			-- パネルサイズ調整 (hjkl)
 			{ key = "h", action = act.AdjustPaneSize({ "Left", 1 }) },
 			{ key = "l", action = act.AdjustPaneSize({ "Right", 1 }) },
 			{ key = "k", action = act.AdjustPaneSize({ "Up", 1 }) },
 			{ key = "j", action = act.AdjustPaneSize({ "Down", 1 }) },
+
+			-- パネル位置入れ替え
+			{ key = "r", action = act.RotatePanes("Clockwise") }, -- 時計回りに回転
+			{ key = "R", action = act.RotatePanes("CounterClockwise") }, -- 反時計回りに回転
+			{ key = "s", action = act.PaneSelect({ mode = "SwapWithActiveKeepFocus", alphabet = "123456789" }) }, -- 選択してスワップ
 
 			-- フォントサイズ調整 (=/-/0)
 			{ key = "=", action = act.IncreaseFontSize },
