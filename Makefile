@@ -49,18 +49,29 @@ XDG_CONFIG_HOME := $(HOME)/.config
 # -----------------------------------------------------------------------------
 # リンク対象定義
 # -----------------------------------------------------------------------------
-# 共通設定（全OS）
-COMMON_CONFIGS := nvim wezterm fish tmux
+# ディレクトリ単位でリンクする設定（全OS共通）
+COMMON_CONFIGS := nvim wezterm tmux
 
-# macOS固有設定
-MACOS_CONFIGS := aerospace karabiner
+# ディレクトリ単位でリンクする設定（macOS固有）
+MACOS_CONFIGS := aerospace
 
-# Linux固有設定
+# ディレクトリ単位でリンクする設定（Linux固有）
 LINUX_CONFIGS := ubuntu_nvim
 
-# Windows固有設定（PowerShell）
+# ディレクトリ単位でリンクする設定（Windows固有）
 # 注: Windowsの場合、PowerShellプロファイルパスは特殊
 WINDOWS_CONFIGS := powershell
+
+# -----------------------------------------------------------------------------
+# ファイル単位リンク対象定義
+# -----------------------------------------------------------------------------
+# fish: 環境依存ファイル（fish_variables等）を除外するためファイル単位で管理
+# 注: functions/, completions/, conf.d/ 内のファイルも個別にリンク
+FISH_FILES := config.fish abbr.fish
+FISH_SUBDIRS := functions completions conf.d
+
+# karabiner: メイン設定(karabiner.json)は環境依存のためカスタムルールのみ管理
+KARABINER_FILES := numpad.json
 
 # -----------------------------------------------------------------------------
 # オプションフラグ
@@ -93,7 +104,10 @@ COLOR_CYAN := \033[36m
 # -----------------------------------------------------------------------------
 .PHONY: all help link link-macos link-linux link-windows \
         unlink unlink-macos unlink-linux unlink-windows \
-        check status clean
+        check status clean \
+        _ensure-xdg-config _create-link _remove-link \
+        _link-fish-files _unlink-fish-files \
+        _link-karabiner-files _unlink-karabiner-files
 
 # -----------------------------------------------------------------------------
 # デフォルトターゲット
@@ -154,6 +168,7 @@ check:
 status:
 	$(ECHO) "$(COLOR_CYAN)シンボリックリンク状態$(COLOR_RESET)"
 	$(ECHO) ""
+	$(ECHO) "$(COLOR_CYAN)[ディレクトリ単位]$(COLOR_RESET)"
 	$(Q)for config in $(COMMON_CONFIGS) $(MACOS_CONFIGS) $(LINUX_CONFIGS); do \
 		target="$(XDG_CONFIG_HOME)/$$config"; \
 		if [ -L "$$target" ]; then \
@@ -161,6 +176,49 @@ status:
 			echo -e "  $(COLOR_GREEN)[LINK]$(COLOR_RESET) $$target -> $$link_dest"; \
 		elif [ -e "$$target" ]; then \
 			echo -e "  $(COLOR_YELLOW)[FILE]$(COLOR_RESET) $$target (通常ファイル/ディレクトリ)"; \
+		else \
+			echo -e "  $(COLOR_RED)[NONE]$(COLOR_RESET) $$target (存在しない)"; \
+		fi; \
+	done
+	$(ECHO) ""
+	$(ECHO) "$(COLOR_CYAN)[ファイル単位: fish]$(COLOR_RESET)"
+	$(Q)for file in $(FISH_FILES); do \
+		target="$(XDG_CONFIG_HOME)/fish/$$file"; \
+		if [ -L "$$target" ]; then \
+			link_dest=$$(readlink "$$target"); \
+			echo -e "  $(COLOR_GREEN)[LINK]$(COLOR_RESET) $$target -> $$link_dest"; \
+		elif [ -e "$$target" ]; then \
+			echo -e "  $(COLOR_YELLOW)[FILE]$(COLOR_RESET) $$target (通常ファイル)"; \
+		else \
+			echo -e "  $(COLOR_RED)[NONE]$(COLOR_RESET) $$target (存在しない)"; \
+		fi; \
+	done
+	$(Q)for subdir in $(FISH_SUBDIRS); do \
+		src_dir="$(CONFIG_DIR)/fish/$$subdir"; \
+		if [ -d "$$src_dir" ]; then \
+			for file in "$$src_dir"/*; do \
+				[ -e "$$file" ] || continue; \
+				filename=$$(basename "$$file"); \
+				target="$(XDG_CONFIG_HOME)/fish/$$subdir/$$filename"; \
+				if [ -L "$$target" ]; then \
+					echo -e "  $(COLOR_GREEN)[LINK]$(COLOR_RESET) $$target"; \
+				elif [ -e "$$target" ]; then \
+					echo -e "  $(COLOR_YELLOW)[FILE]$(COLOR_RESET) $$target"; \
+				else \
+					echo -e "  $(COLOR_RED)[NONE]$(COLOR_RESET) $$target"; \
+				fi; \
+			done; \
+		fi; \
+	done
+	$(ECHO) ""
+	$(ECHO) "$(COLOR_CYAN)[ファイル単位: karabiner]$(COLOR_RESET)"
+	$(Q)for file in $(KARABINER_FILES); do \
+		target="$(XDG_CONFIG_HOME)/karabiner/$$file"; \
+		if [ -L "$$target" ]; then \
+			link_dest=$$(readlink "$$target"); \
+			echo -e "  $(COLOR_GREEN)[LINK]$(COLOR_RESET) $$target -> $$link_dest"; \
+		elif [ -e "$$target" ]; then \
+			echo -e "  $(COLOR_YELLOW)[FILE]$(COLOR_RESET) $$target (通常ファイル)"; \
 		else \
 			echo -e "  $(COLOR_RED)[NONE]$(COLOR_RESET) $$target (存在しない)"; \
 		fi; \
@@ -198,12 +256,19 @@ endif
 link-macos: _ensure-xdg-config
 	$(ECHO) "$(COLOR_CYAN)macOS: シンボリックリンクを作成します$(COLOR_RESET)"
 	$(ECHO) ""
+	$(ECHO) "$(COLOR_CYAN)[ディレクトリ単位]$(COLOR_RESET)"
 	$(Q)for config in $(COMMON_CONFIGS) $(MACOS_CONFIGS); do \
 		$(MAKE) _create-link \
 			SRC="$(CONFIG_DIR)/$$config" \
 			DEST="$(XDG_CONFIG_HOME)/$$config" \
 			FORCE=$(FORCE); \
 	done
+	$(ECHO) ""
+	$(ECHO) "$(COLOR_CYAN)[ファイル単位: fish]$(COLOR_RESET)"
+	$(Q)$(MAKE) _link-fish-files FORCE=$(FORCE)
+	$(ECHO) ""
+	$(ECHO) "$(COLOR_CYAN)[ファイル単位: karabiner]$(COLOR_RESET)"
+	$(Q)$(MAKE) _link-karabiner-files FORCE=$(FORCE)
 	$(ECHO) ""
 	$(ECHO) "$(COLOR_GREEN)macOS: 完了$(COLOR_RESET)"
 
@@ -213,12 +278,16 @@ link-macos: _ensure-xdg-config
 link-linux: _ensure-xdg-config
 	$(ECHO) "$(COLOR_CYAN)Linux: シンボリックリンクを作成します$(COLOR_RESET)"
 	$(ECHO) ""
+	$(ECHO) "$(COLOR_CYAN)[ディレクトリ単位]$(COLOR_RESET)"
 	$(Q)for config in $(COMMON_CONFIGS) $(LINUX_CONFIGS); do \
 		$(MAKE) _create-link \
 			SRC="$(CONFIG_DIR)/$$config" \
 			DEST="$(XDG_CONFIG_HOME)/$$config" \
 			FORCE=$(FORCE); \
 	done
+	$(ECHO) ""
+	$(ECHO) "$(COLOR_CYAN)[ファイル単位: fish]$(COLOR_RESET)"
+	$(Q)$(MAKE) _link-fish-files FORCE=$(FORCE)
 	$(ECHO) ""
 	$(ECHO) "$(COLOR_GREEN)Linux: 完了$(COLOR_RESET)"
 
@@ -231,12 +300,16 @@ link-windows: _ensure-xdg-config
 	$(ECHO) "$(COLOR_CYAN)Windows: シンボリックリンクを作成します$(COLOR_RESET)"
 	$(ECHO) "$(COLOR_YELLOW)注: 管理者権限が必要な場合があります$(COLOR_RESET)"
 	$(ECHO) ""
+	$(ECHO) "$(COLOR_CYAN)[ディレクトリ単位]$(COLOR_RESET)"
 	$(Q)for config in $(COMMON_CONFIGS); do \
 		$(MAKE) _create-link \
 			SRC="$(CONFIG_DIR)/$$config" \
 			DEST="$(XDG_CONFIG_HOME)/$$config" \
 			FORCE=$(FORCE); \
 	done
+	$(ECHO) ""
+	$(ECHO) "$(COLOR_CYAN)[ファイル単位: fish]$(COLOR_RESET)"
+	$(Q)$(MAKE) _link-fish-files FORCE=$(FORCE)
 	@# PowerShell プロファイル用の特殊処理
 	$(ECHO) ""
 	$(ECHO) "$(COLOR_YELLOW)PowerShellプロファイルは手動設定が必要な場合があります:$(COLOR_RESET)"
@@ -265,6 +338,8 @@ unlink-macos:
 	$(Q)for config in $(COMMON_CONFIGS) $(MACOS_CONFIGS); do \
 		$(MAKE) _remove-link DEST="$(XDG_CONFIG_HOME)/$$config"; \
 	done
+	$(Q)$(MAKE) _unlink-fish-files
+	$(Q)$(MAKE) _unlink-karabiner-files
 	$(ECHO) "$(COLOR_GREEN)macOS: リンク削除完了$(COLOR_RESET)"
 
 unlink-linux:
@@ -272,6 +347,7 @@ unlink-linux:
 	$(Q)for config in $(COMMON_CONFIGS) $(LINUX_CONFIGS); do \
 		$(MAKE) _remove-link DEST="$(XDG_CONFIG_HOME)/$$config"; \
 	done
+	$(Q)$(MAKE) _unlink-fish-files
 	$(ECHO) "$(COLOR_GREEN)Linux: リンク削除完了$(COLOR_RESET)"
 
 unlink-windows:
@@ -279,6 +355,7 @@ unlink-windows:
 	$(Q)for config in $(COMMON_CONFIGS); do \
 		$(MAKE) _remove-link DEST="$(XDG_CONFIG_HOME)/$$config"; \
 	done
+	$(Q)$(MAKE) _unlink-fish-files
 	$(ECHO) "$(COLOR_GREEN)Windows: リンク削除完了$(COLOR_RESET)"
 
 # -----------------------------------------------------------------------------
@@ -331,6 +408,81 @@ _remove-link:
 	else \
 		echo -e "  $(COLOR_YELLOW)[SKIP]$(COLOR_RESET) $(DEST) (存在しません)"; \
 	fi
+
+# -----------------------------------------------------------------------------
+# 内部ターゲット: fish ファイル単位リンク作成
+# -----------------------------------------------------------------------------
+# fish は環境依存ファイル（fish_variables等）を除外するためファイル単位でリンク
+_link-fish-files:
+	@# ~/.config/fish ディレクトリがなければ作成
+	$(Q)mkdir -p "$(XDG_CONFIG_HOME)/fish"
+	@# ルートレベルのファイルをリンク
+	$(Q)for file in $(FISH_FILES); do \
+		src="$(CONFIG_DIR)/fish/$$file"; \
+		dest="$(XDG_CONFIG_HOME)/fish/$$file"; \
+		if [ -e "$$src" ]; then \
+			$(MAKE) _create-link SRC="$$src" DEST="$$dest" FORCE=$(FORCE); \
+		fi; \
+	done
+	@# サブディレクトリ内のファイルをリンク
+	$(Q)for subdir in $(FISH_SUBDIRS); do \
+		src_dir="$(CONFIG_DIR)/fish/$$subdir"; \
+		dest_dir="$(XDG_CONFIG_HOME)/fish/$$subdir"; \
+		if [ -d "$$src_dir" ]; then \
+			mkdir -p "$$dest_dir"; \
+			for file in "$$src_dir"/*; do \
+				[ -e "$$file" ] || continue; \
+				filename=$$(basename "$$file"); \
+				$(MAKE) _create-link SRC="$$file" DEST="$$dest_dir/$$filename" FORCE=$(FORCE); \
+			done; \
+		fi; \
+	done
+
+# -----------------------------------------------------------------------------
+# 内部ターゲット: fish ファイル単位リンク削除
+# -----------------------------------------------------------------------------
+_unlink-fish-files:
+	@# ルートレベルのファイルを削除
+	$(Q)for file in $(FISH_FILES); do \
+		dest="$(XDG_CONFIG_HOME)/fish/$$file"; \
+		$(MAKE) _remove-link DEST="$$dest"; \
+	done
+	@# サブディレクトリ内のファイルを削除
+	$(Q)for subdir in $(FISH_SUBDIRS); do \
+		src_dir="$(CONFIG_DIR)/fish/$$subdir"; \
+		dest_dir="$(XDG_CONFIG_HOME)/fish/$$subdir"; \
+		if [ -d "$$src_dir" ]; then \
+			for file in "$$src_dir"/*; do \
+				[ -e "$$file" ] || continue; \
+				filename=$$(basename "$$file"); \
+				$(MAKE) _remove-link DEST="$$dest_dir/$$filename"; \
+			done; \
+		fi; \
+	done
+
+# -----------------------------------------------------------------------------
+# 内部ターゲット: karabiner ファイル単位リンク作成
+# -----------------------------------------------------------------------------
+# karabiner はメイン設定(karabiner.json)が環境依存のためカスタムルールのみリンク
+_link-karabiner-files:
+	@# ~/.config/karabiner ディレクトリがなければ作成
+	$(Q)mkdir -p "$(XDG_CONFIG_HOME)/karabiner"
+	$(Q)for file in $(KARABINER_FILES); do \
+		src="$(CONFIG_DIR)/karabiner/$$file"; \
+		dest="$(XDG_CONFIG_HOME)/karabiner/$$file"; \
+		if [ -e "$$src" ]; then \
+			$(MAKE) _create-link SRC="$$src" DEST="$$dest" FORCE=$(FORCE); \
+		fi; \
+	done
+
+# -----------------------------------------------------------------------------
+# 内部ターゲット: karabiner ファイル単位リンク削除
+# -----------------------------------------------------------------------------
+_unlink-karabiner-files:
+	$(Q)for file in $(KARABINER_FILES); do \
+		dest="$(XDG_CONFIG_HOME)/karabiner/$$file"; \
+		$(MAKE) _remove-link DEST="$$dest"; \
+	done
 
 # -----------------------------------------------------------------------------
 # クリーンアップ（全リンク削除の別名）
