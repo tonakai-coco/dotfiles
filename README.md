@@ -61,8 +61,8 @@ make unlink    # リンクを削除
 |------|------|--------|
 | Neovim | `~/.config/nvim` (Windows: `$LOCALAPPDATA/nvim`) | macOS / Linux / Windows |
 | WezTerm | `~/.config/wezterm` | 全OS |
-| fish | `~/.config/fish` | 全OS |
-| tmux | `~/.config/tmux` | 全OS |
+| fish | `~/.config/fish` | macOS |
+| tmux | `~/.config/tmux` | macOS / Linux |
 | AeroSpace | `~/.config/aerospace` | macOS |
 | Karabiner | `~/.config/karabiner` | macOS |
 | PowerShell | `~/.config/powershell` | Windows |

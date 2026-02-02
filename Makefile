@@ -53,13 +53,13 @@ LOCALAPPDATA ?= $(HOME)/AppData/Local
 # Link targets
 # -----------------------------------------------------------------------------
 # Directory-level symlinks (all OS)
-COMMON_CONFIGS := wezterm tmux
+COMMON_CONFIGS := wezterm
 
 # Directory-level symlinks (macOS only)
-MACOS_CONFIGS := nvim aerospace
+MACOS_CONFIGS := nvim aerospace tmux
 
 # Directory-level symlinks (Linux only)
-LINUX_CONFIGS := nvim ubuntu_nvim
+LINUX_CONFIGS := nvim ubuntu_nvim tmux
 
 # Directory-level symlinks (Windows only)
 # Note: PowerShell profile path is special on Windows
@@ -299,9 +299,6 @@ link-linux: _ensure-xdg-config
 			FORCE=$(FORCE); \
 	done
 	$(ECHO) ""
-	$(ECHO) "$(COLOR_CYAN)[File-level: fish]$(COLOR_RESET)"
-	$(Q)$(MAKE) _link-fish-files FORCE=$(FORCE)
-	$(ECHO) ""
 	$(ECHO) "$(COLOR_GREEN)Linux: Done$(COLOR_RESET)"
 
 # -----------------------------------------------------------------------------
@@ -325,9 +322,6 @@ link-windows: _ensure-xdg-config
 		SRC="$(CONFIG_DIR)/nvim" \
 		DEST="$(LOCALAPPDATA)/nvim" \
 		FORCE=$(FORCE)
-	$(ECHO) ""
-	$(ECHO) "$(COLOR_CYAN)[File-level: fish]$(COLOR_RESET)"
-	$(Q)$(MAKE) _link-fish-files FORCE=$(FORCE)
 	$(ECHO) ""
 	$(ECHO) "$(COLOR_GREEN)Windows: Done$(COLOR_RESET)"
 
@@ -360,7 +354,6 @@ unlink-linux:
 	$(Q)for config in $(COMMON_CONFIGS) $(LINUX_CONFIGS); do \
 		$(MAKE) _remove-link DEST="$(XDG_CONFIG_HOME)/$$config"; \
 	done
-	$(Q)$(MAKE) _unlink-fish-files
 	$(ECHO) "$(COLOR_GREEN)Linux: Unlink complete$(COLOR_RESET)"
 
 unlink-windows:
@@ -369,7 +362,6 @@ unlink-windows:
 		$(MAKE) _remove-link DEST="$(XDG_CONFIG_HOME)/$$config"; \
 	done
 	$(Q)$(MAKE) _remove-link DEST="$(LOCALAPPDATA)/nvim"
-	$(Q)$(MAKE) _unlink-fish-files
 	$(ECHO) "$(COLOR_GREEN)Windows: Unlink complete$(COLOR_RESET)"
 
 # -----------------------------------------------------------------------------
