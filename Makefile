@@ -46,17 +46,20 @@ DOTFILES_DIR := $(shell pwd)
 CONFIG_DIR := $(DOTFILES_DIR)/config
 XDG_CONFIG_HOME := $(HOME)/.config
 
+# Windows: Neovim uses $LOCALAPPDATA/nvim (e.g. C:\Users\<user>\AppData\Local\nvim)
+LOCALAPPDATA ?= $(HOME)/AppData/Local
+
 # -----------------------------------------------------------------------------
 # Link targets
 # -----------------------------------------------------------------------------
 # Directory-level symlinks (all OS)
-COMMON_CONFIGS := nvim wezterm tmux
+COMMON_CONFIGS := wezterm tmux
 
 # Directory-level symlinks (macOS only)
-MACOS_CONFIGS := aerospace
+MACOS_CONFIGS := nvim aerospace
 
 # Directory-level symlinks (Linux only)
-LINUX_CONFIGS := ubuntu_nvim
+LINUX_CONFIGS := nvim ubuntu_nvim
 
 # Directory-level symlinks (Windows only)
 # Note: PowerShell profile path is special on Windows
@@ -169,7 +172,7 @@ status:
 	$(ECHO) "$(COLOR_CYAN)Symlink Status$(COLOR_RESET)"
 	$(ECHO) ""
 	$(ECHO) "$(COLOR_CYAN)[Directory-level]$(COLOR_RESET)"
-	$(Q)for config in $(COMMON_CONFIGS) $(MACOS_CONFIGS) $(LINUX_CONFIGS); do \
+	$(Q)for config in $(COMMON_CONFIGS) $(MACOS_CONFIGS) $(LINUX_CONFIGS) $(WINDOWS_CONFIGS); do \
 		target="$(XDG_CONFIG_HOME)/$$config"; \
 		if [ -L "$$target" ]; then \
 			link_dest=$$(readlink "$$target"); \
@@ -180,6 +183,16 @@ status:
 			echo -e "  $(COLOR_RED)[NONE]$(COLOR_RESET) $$target (not found)"; \
 		fi; \
 	done
+	@# Windows: Neovim uses $LOCALAPPDATA/nvim
+	$(Q)target="$(LOCALAPPDATA)/nvim"; \
+	if [ -L "$$target" ]; then \
+		link_dest=$$(readlink "$$target"); \
+		echo -e "  $(COLOR_GREEN)[LINK]$(COLOR_RESET) $$target -> $$link_dest"; \
+	elif [ -e "$$target" ]; then \
+		echo -e "  $(COLOR_YELLOW)[FILE]$(COLOR_RESET) $$target (regular file/directory)"; \
+	else \
+		echo -e "  $(COLOR_RED)[NONE]$(COLOR_RESET) $$target (not found)"; \
+	fi
 	$(ECHO) ""
 	$(ECHO) "$(COLOR_CYAN)[File-level: fish]$(COLOR_RESET)"
 	$(Q)for file in $(FISH_FILES); do \
@@ -301,20 +314,20 @@ link-windows: _ensure-xdg-config
 	$(ECHO) "$(COLOR_YELLOW)Note: Administrator privileges may be required$(COLOR_RESET)"
 	$(ECHO) ""
 	$(ECHO) "$(COLOR_CYAN)[Directory-level]$(COLOR_RESET)"
-	$(Q)for config in $(COMMON_CONFIGS); do \
+	$(Q)for config in $(COMMON_CONFIGS) $(WINDOWS_CONFIGS); do \
 		$(MAKE) _create-link \
 			SRC="$(CONFIG_DIR)/$$config" \
 			DEST="$(XDG_CONFIG_HOME)/$$config" \
 			FORCE=$(FORCE); \
 	done
+	@# Neovim on Windows uses $LOCALAPPDATA/nvim
+	$(Q)$(MAKE) _create-link \
+		SRC="$(CONFIG_DIR)/nvim" \
+		DEST="$(LOCALAPPDATA)/nvim" \
+		FORCE=$(FORCE)
 	$(ECHO) ""
 	$(ECHO) "$(COLOR_CYAN)[File-level: fish]$(COLOR_RESET)"
 	$(Q)$(MAKE) _link-fish-files FORCE=$(FORCE)
-	@# PowerShell profile needs special handling
-	$(ECHO) ""
-	$(ECHO) "$(COLOR_YELLOW)PowerShell profile may need manual setup:$(COLOR_RESET)"
-	$(ECHO) "  Source: $(CONFIG_DIR)/powershell"
-	$(ECHO) "  Target: \$$HOME\\Documents\\PowerShell"
 	$(ECHO) ""
 	$(ECHO) "$(COLOR_GREEN)Windows: Done$(COLOR_RESET)"
 
@@ -352,9 +365,10 @@ unlink-linux:
 
 unlink-windows:
 	$(ECHO) "$(COLOR_CYAN)Windows: Removing symlinks$(COLOR_RESET)"
-	$(Q)for config in $(COMMON_CONFIGS); do \
+	$(Q)for config in $(COMMON_CONFIGS) $(WINDOWS_CONFIGS); do \
 		$(MAKE) _remove-link DEST="$(XDG_CONFIG_HOME)/$$config"; \
 	done
+	$(Q)$(MAKE) _remove-link DEST="$(LOCALAPPDATA)/nvim"
 	$(Q)$(MAKE) _unlink-fish-files
 	$(ECHO) "$(COLOR_GREEN)Windows: Unlink complete$(COLOR_RESET)"
 

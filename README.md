@@ -59,12 +59,13 @@ make unlink    # リンクを削除
 
 | 設定 | パス | 対象OS |
 |------|------|--------|
-| Neovim | `~/.config/nvim` | 全OS |
+| Neovim | `~/.config/nvim` (Windows: `$LOCALAPPDATA/nvim`) | macOS / Linux / Windows |
 | WezTerm | `~/.config/wezterm` | 全OS |
 | fish | `~/.config/fish` | 全OS |
 | tmux | `~/.config/tmux` | 全OS |
 | AeroSpace | `~/.config/aerospace` | macOS |
 | Karabiner | `~/.config/karabiner` | macOS |
+| PowerShell | `~/.config/powershell` | Windows |
 | ubuntu_nvim | `~/.config/ubuntu_nvim` | Linux |
 
 ## ディレクトリ構成
@@ -80,5 +81,6 @@ dotfiles/
     ├── tmux/         # tmux 設定
     ├── aerospace/    # AeroSpace 設定 (macOS)
     ├── karabiner/    # Karabiner 設定 (macOS)
+    ├── powershell/   # PowerShell 設定 (Windows)
     └── ubuntu_nvim/  # Ubuntu用 Neovim 設定
 ```
