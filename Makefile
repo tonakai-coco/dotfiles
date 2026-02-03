@@ -209,6 +209,8 @@ ifeq ($(DETECTED_OS),windows)
 		echo -e "  $(COLOR_RED)[NONE]$(COLOR_RESET) $$target (not found)"; \
 	fi
 endif
+	@# fish and karabiner: not used on Windows
+ifneq ($(DETECTED_OS),windows)
 	$(ECHO) ""
 	$(ECHO) "$(COLOR_CYAN)[File-level: fish]$(COLOR_RESET)"
 	$(Q)for file in $(FISH_FILES); do \
@@ -252,6 +254,7 @@ endif
 			echo -e "  $(COLOR_RED)[NONE]$(COLOR_RESET) $$target (not found)"; \
 		fi; \
 	done
+endif
 
 # -----------------------------------------------------------------------------
 # Main link target (auto-detect OS)
