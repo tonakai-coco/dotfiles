@@ -9,7 +9,13 @@
 # Shell settings
 # -----------------------------------------------------------------------------
 # SHELL: Use bash explicitly (some features require more than POSIX sh)
+# On Windows, derive Git for Windows bash from git --exec-path
+# (PATH may only have WSL's bash.exe, not Git's)
+ifdef ComSpec
+SHELL := $(subst mingw64/libexec/git-core,bin/bash.exe,$(subst \,/,$(shell git --exec-path 2>nul)))
+else
 SHELL := /bin/bash
+endif
 
 # .SHELLFLAGS: -e exits on error, -u errors on undefined vars, -o pipefail catches pipe errors
 .SHELLFLAGS := -eu -o pipefail -c
