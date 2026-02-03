@@ -50,6 +50,8 @@ endif
 # -----------------------------------------------------------------------------
 DOTFILES_DIR := $(shell pwd)
 CONFIG_DIR := $(DOTFILES_DIR)/config
+# On Windows via PowerShell, HOME may be unset; fall back to USERPROFILE
+HOME := $(or $(HOME),$(USERPROFILE))
 XDG_CONFIG_HOME := $(HOME)/.config
 
 # Windows: Neovim uses $LOCALAPPDATA/nvim (e.g. C:\Users\<user>\AppData\Local\nvim)
@@ -178,7 +180,13 @@ status:
 	$(ECHO) "$(COLOR_CYAN)Symlink Status$(COLOR_RESET)"
 	$(ECHO) ""
 	$(ECHO) "$(COLOR_CYAN)[Directory-level]$(COLOR_RESET)"
-	$(Q)for config in $(COMMON_CONFIGS) $(MACOS_CONFIGS) $(LINUX_CONFIGS) $(WINDOWS_CONFIGS); do \
+	$(Q)STATUS_CONFIGS="$(COMMON_CONFIGS)"; \
+	case "$(DETECTED_OS)" in \
+		macos)   STATUS_CONFIGS="$$STATUS_CONFIGS $(MACOS_CONFIGS)" ;; \
+		linux)   STATUS_CONFIGS="$$STATUS_CONFIGS $(LINUX_CONFIGS)" ;; \
+		windows) STATUS_CONFIGS="$$STATUS_CONFIGS $(WINDOWS_CONFIGS)" ;; \
+	esac; \
+	for config in $$STATUS_CONFIGS; do \
 		target="$(XDG_CONFIG_HOME)/$$config"; \
 		if [ -L "$$target" ]; then \
 			link_dest=$$(readlink "$$target"); \
@@ -190,6 +198,7 @@ status:
 		fi; \
 	done
 	@# Windows: Neovim uses $LOCALAPPDATA/nvim
+ifeq ($(DETECTED_OS),windows)
 	$(Q)target="$(LOCALAPPDATA)/nvim"; \
 	if [ -L "$$target" ]; then \
 		link_dest=$$(readlink "$$target"); \
@@ -199,6 +208,7 @@ status:
 	else \
 		echo -e "  $(COLOR_RED)[NONE]$(COLOR_RESET) $$target (not found)"; \
 	fi
+endif
 	$(ECHO) ""
 	$(ECHO) "$(COLOR_CYAN)[File-level: fish]$(COLOR_RESET)"
 	$(Q)for file in $(FISH_FILES); do \
