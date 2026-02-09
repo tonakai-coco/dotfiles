@@ -45,6 +45,14 @@ else
     DETECTED_OS := unknown
 endif
 
+# Windows: use PowerShell New-Item for native NTFS symlinks (requires sudo)
+# macOS/Linux: use ln -s
+ifeq ($(DETECTED_OS),windows)
+    define win-symlink
+    sudo powershell.exe -Command "New-Item -ItemType SymbolicLink -Path '$(2)' -Target '$(1)' -Force" > /dev/null
+    endef
+endif
+
 # -----------------------------------------------------------------------------
 # Path definitions
 # -----------------------------------------------------------------------------
@@ -71,7 +79,7 @@ LINUX_CONFIGS := nvim ubuntu_nvim tmux
 
 # Directory-level symlinks (Windows only)
 # Note: PowerShell profile path is special on Windows
-WINDOWS_CONFIGS := powershell
+WINDOWS_CONFIGS := powershell autohotkey
 
 # -----------------------------------------------------------------------------
 # File-level link targets
@@ -417,7 +425,11 @@ _create-link:
 		fi; \
 	fi
 	@# Create symlink
+ifeq ($(DETECTED_OS),windows)
+	$(Q)$(call win-symlink,$(SRC),$(DEST))
+else
 	$(Q)ln -s "$(SRC)" "$(DEST)"
+endif
 	$(Q)echo -e "  $(COLOR_GREEN)[LINK]$(COLOR_RESET) $(DEST) -> $(SRC)"
 
 # -----------------------------------------------------------------------------
