@@ -252,6 +252,10 @@ alt-shift-k = ['join-with up', 'mode main']
 alt-shift-l = ['join-with right', 'mode main']
 
 [[on-window-detected]]
+if.app-id = 'com.anthropic.claudefordesktop'
+run = 'move-node-to-workspace C'
+
+[[on-window-detected]]
 if.app-id = 'notion.id'
 run = 'move-node-to-workspace N'
 
