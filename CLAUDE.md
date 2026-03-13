@@ -65,7 +65,7 @@ config/
 - 全OS共通: wezterm
 - macOS: nvim, aerospace, tmux, fish (ファイルレベル), karabiner (ファイルレベル)
 - Linux: nvim, ubuntu_nvim, tmux
-- Windows: powershell, nvim（$LOCALAPPDATA/nvim）
+- Windows: powershell, autohotkey, nvim（$LOCALAPPDATA/nvim）
 
 **Neovim内のOS分岐**:
 - `lua/config/macos.lua` - macOS固有設定

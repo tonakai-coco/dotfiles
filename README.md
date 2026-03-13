@@ -66,6 +66,7 @@ make unlink    # リンクを削除
 | AeroSpace | `~/.config/aerospace` | macOS |
 | Karabiner | `~/.config/karabiner` | macOS |
 | PowerShell | `~/.config/powershell` | Windows |
+| AutoHotkey | `~/.config/autohotkey` | Windows |
 | ubuntu_nvim | `~/.config/ubuntu_nvim` | Linux |
 
 ## ディレクトリ構成
@@ -82,5 +83,6 @@ dotfiles/
     ├── aerospace/    # AeroSpace 設定 (macOS)
     ├── karabiner/    # Karabiner 設定 (macOS)
     ├── powershell/   # PowerShell 設定 (Windows)
+    ├── autohotkey/   # AutoHotkey 設定 (Windows)
     └── ubuntu_nvim/  # Ubuntu用 Neovim 設定
 ```
