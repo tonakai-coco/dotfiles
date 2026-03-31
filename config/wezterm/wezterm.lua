@@ -19,8 +19,9 @@ if string.find(triple, "windows") then
 			style = "Normal",
 		},
 	})
-	config.window_background_opacity = 0.70
-	config.win32_system_backdrop = "Acrylic"
+	config.window_background_opacity = 0.55
+	config.win32_system_backdrop = "Mica"
+	config.text_background_opacity = 0.85
 elseif string.find(triple, "apple") then
 	-- macOS (Apple Silicon / Intel)
 	-- config.default_prog = { "zsh" }
@@ -65,7 +66,7 @@ config.inactive_pane_hsb = {
 }
 
 config.window_background_gradient = {
-	colors = { "#000000" },
+	colors = { "#00000000" },
 }
 
 config.show_new_tab_button_in_tab_bar = false
