@@ -23,8 +23,8 @@ if is_windows then
 			style = "Normal",
 		},
 	})
-	config.window_background_opacity = 0.55
-	config.text_background_opacity = 0.85
+	config.window_background_opacity = 0.75
+	config.text_background_opacity = 0.95
 	config.win32_system_backdrop = "Acrylic"
 elseif is_mac then
 	-- macOS (Apple Silicon / Intel)
