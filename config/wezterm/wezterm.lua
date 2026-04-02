@@ -7,7 +7,11 @@ local config = wezterm.config_builder()
 -- OS別設定
 ----------------------------------------------------
 local triple = wezterm.target_triple
-if string.find(triple, "windows") then
+local is_windows = wezterm.target_triple:find("windows")
+local is_mac = wezterm.target_triple:find("darwin")
+local is_linux = wezterm.target_triple:find("linux")
+
+if is_windows then
 	-- Windows
 	config.default_prog = { "pwsh.exe", "-NoLogo" }
 	config.font_size = 9.5
@@ -19,16 +23,17 @@ if string.find(triple, "windows") then
 			style = "Normal",
 		},
 	})
-	config.window_background_opacity = 0.70
+	config.window_background_opacity = 0.75
+	config.text_background_opacity = 0.95
 	config.win32_system_backdrop = "Acrylic"
-elseif string.find(triple, "apple") then
+elseif is_mac then
 	-- macOS (Apple Silicon / Intel)
 	-- config.default_prog = { "zsh" }
 	config.font_size = 12.5
 	wezterm.font("HackGen35 Console NF", { weight = "Regular", stretch = "Normal", style = "Normal" })
 	config.window_background_opacity = 0.75
 	config.macos_window_background_blur = 30
-elseif string.find(triple, "linux") then
+elseif is_linux then
 	-- Linux
 	config.enable_wayland = false
 	config.default_prog = { "bash" }
@@ -64,9 +69,16 @@ config.inactive_pane_hsb = {
 	brightness = 0.45, -- 明度を下げて暗くする
 }
 
-config.window_background_gradient = {
-	colors = { "#000000" },
-}
+if is_windows then
+	config.window_background_gradient = {
+		colors = { "#0f1118", "#131722" },
+		orientation = { Linear = { angle = 135.0 } },
+	}
+else
+	config.window_background_gradient = {
+		colors = { "#000000" },
+	}
+end
 
 config.show_new_tab_button_in_tab_bar = false
 -- config.show_close_tab_button_in_tab_bar = false  -- ナイトリービルドのみのオプション
@@ -92,9 +104,9 @@ local keybinds = {
 
 -- 2. OS固有のキーバインドを読み込んでマージする
 local os_binds_file = nil
-if string.find(triple, "apple") then
+if is_mac then
 	os_binds_file = "keybinds_mac"
-elseif string.find(triple, "windows") then
+elseif is_windows then
 	os_binds_file = "keybinds_win"
 end
 
