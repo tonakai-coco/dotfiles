@@ -1,0 +1,51 @@
+name: make-test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  linux-make:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Prepare isolated home
+        run: |
+          test_root="$(mktemp -d)"
+          mkdir -p "$test_root/home"
+          echo "HOME=$test_root/home" >> "$GITHUB_ENV"
+          echo "XDG_CONFIG_HOME=$test_root/home/.config" >> "$GITHUB_ENV"
+
+      - name: Check detected OS
+        run: make check
+
+      - name: Check initial status
+        run: make status
+
+      - name: Create Linux symlinks
+        run: make link-linux
+
+      - name: Verify Linux symlinks
+        run: |
+          for config in wezterm nvim ubuntu_nvim tmux; do
+            test -L "$XDG_CONFIG_HOME/$config"
+          done
+
+      - name: Check linked status
+        run: make status
+
+      - name: Remove Linux symlinks
+        run: make unlink-linux
+
+      - name: Verify Linux symlinks removed
+        run: |
+          for config in wezterm nvim ubuntu_nvim tmux; do
+            test ! -L "$XDG_CONFIG_HOME/$config"
+          done
