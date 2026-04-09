@@ -35,4 +35,4 @@
 - 全 OS 共通: `config/wezterm/`
 - macOS: `config/nvim/` `config/aerospace/` `config/tmux/` `config/fish/` `config/karabiner/`
 - Linux: `config/nvim/` `config/ubuntu_nvim/` `config/tmux/`
-- Windows: `config/powershell/` `config/nvim/`
+- Windows: `config/powershell/` `config/autohotkey/` `config/nvim/`

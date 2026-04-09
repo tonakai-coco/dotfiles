@@ -15,5 +15,5 @@
 - `fish/`: 主に macOS
 - `tmux/`: macOS / Linux
 - `aerospace/` `karabiner/`: macOS
-- `powershell/`: Windows
+- `powershell/` `autohotkey/`: Windows
 - `ubuntu_nvim/`: Linux 向けレガシー Vim
