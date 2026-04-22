@@ -23,3 +23,4 @@ This file is a short entrypoint for Claude Code. Shared repository rules live in
 - If `Makefile` or link definitions change, run `make check` and `make status`.
 - Use Conventional Commits.
 - Record reason, validation, and any skipped checks in the PR.
+- Save the implementation plan to `docs/plans/<task-name>.md` before committing.
