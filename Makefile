@@ -58,6 +58,7 @@ endif
 # -----------------------------------------------------------------------------
 DOTFILES_DIR := $(shell pwd)
 CONFIG_DIR := $(DOTFILES_DIR)/config
+AI_DIR := $(DOTFILES_DIR)/ai
 # On Windows via PowerShell, HOME may be unset; fall back to USERPROFILE
 HOME := $(or $(HOME),$(USERPROFILE))
 XDG_CONFIG_HOME := $(HOME)/.config
@@ -126,7 +127,8 @@ COLOR_CYAN := \033[36m
         check status clean \
         _ensure-xdg-config _create-link _remove-link \
         _link-fish-files _unlink-fish-files \
-        _link-karabiner-files _unlink-karabiner-files
+        _link-karabiner-files _unlink-karabiner-files \
+        _link-ai-configs _unlink-ai-configs
 
 # -----------------------------------------------------------------------------
 # Default target
@@ -263,6 +265,21 @@ ifneq ($(DETECTED_OS),windows)
 		fi; \
 	done
 endif
+	$(ECHO) ""
+	$(ECHO) "$(COLOR_CYAN)[File-level: AI tools]$(COLOR_RESET)"
+	$(Q)for target in \
+		"$(HOME)/.agents/skills" \
+		"$(HOME)/.claude/skills/git-commit-jp" \
+		"$(HOME)/.codex/hooks.json"; do \
+		if [ -L "$$target" ]; then \
+			link_dest=$$(readlink "$$target"); \
+			echo -e "  $(COLOR_GREEN)[LINK]$(COLOR_RESET) $$target -> $$link_dest"; \
+		elif [ -e "$$target" ]; then \
+			echo -e "  $(COLOR_YELLOW)[FILE]$(COLOR_RESET) $$target (regular file/directory)"; \
+		else \
+			echo -e "  $(COLOR_RED)[NONE]$(COLOR_RESET) $$target (not found)"; \
+		fi; \
+	done
 
 # -----------------------------------------------------------------------------
 # Main link target (auto-detect OS)
@@ -309,6 +326,9 @@ link-macos: _ensure-xdg-config
 	$(ECHO) ""
 	$(ECHO) "$(COLOR_CYAN)[File-level: karabiner]$(COLOR_RESET)"
 	$(Q)$(MAKE) _link-karabiner-files FORCE=$(FORCE)
+	$(ECHO) ""
+	$(ECHO) "$(COLOR_CYAN)[File-level: AI tools]$(COLOR_RESET)"
+	$(Q)$(MAKE) _link-ai-configs FORCE=$(FORCE)
 	$(ECHO) ""
 	$(ECHO) "$(COLOR_GREEN)macOS: Done$(COLOR_RESET)"
 
@@ -374,6 +394,7 @@ unlink-macos:
 	done
 	$(Q)$(MAKE) _unlink-fish-files
 	$(Q)$(MAKE) _unlink-karabiner-files
+	$(Q)$(MAKE) _unlink-ai-configs
 	$(ECHO) "$(COLOR_GREEN)macOS: Unlink complete$(COLOR_RESET)"
 
 unlink-linux:
@@ -520,6 +541,41 @@ _unlink-karabiner-files:
 		dest="$(XDG_CONFIG_HOME)/karabiner/$$file"; \
 		$(MAKE) _remove-link DEST="$$dest"; \
 	done
+
+# -----------------------------------------------------------------------------
+# Internal: Create AI tool symlinks (home-dir targets, macOS)
+# -----------------------------------------------------------------------------
+# Targets:
+#   ~/.agents/skills        -> dotfiles/ai/skills          (directory)
+#   ~/.claude/skills/git-commit-jp -> dotfiles/ai/skills/git-commit-jp (directory)
+#   ~/.codex/hooks.json     -> dotfiles/ai/codex/hooks.json (file)
+_link-ai-configs:
+	@# ~/.agents/skills -> dotfiles/ai/skills
+	$(Q)mkdir -p "$(HOME)/.agents"
+	$(Q)$(MAKE) _create-link \
+		SRC="$(AI_DIR)/skills" \
+		DEST="$(HOME)/.agents/skills" \
+		FORCE=$(FORCE)
+	@# ~/.claude/skills/git-commit-jp -> dotfiles/ai/skills/git-commit-jp
+	$(Q)mkdir -p "$(HOME)/.claude/skills"
+	$(Q)$(MAKE) _create-link \
+		SRC="$(AI_DIR)/skills/git-commit-jp" \
+		DEST="$(HOME)/.claude/skills/git-commit-jp" \
+		FORCE=$(FORCE)
+	@# ~/.codex/hooks.json -> dotfiles/ai/codex/hooks.json
+	$(Q)mkdir -p "$(HOME)/.codex"
+	$(Q)$(MAKE) _create-link \
+		SRC="$(AI_DIR)/codex/hooks.json" \
+		DEST="$(HOME)/.codex/hooks.json" \
+		FORCE=$(FORCE)
+
+# -----------------------------------------------------------------------------
+# Internal: Remove AI tool symlinks
+# -----------------------------------------------------------------------------
+_unlink-ai-configs:
+	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.agents/skills"
+	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.claude/skills/git-commit-jp"
+	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.codex/hooks.json"
 
 # -----------------------------------------------------------------------------
 # Cleanup (alias for unlink)

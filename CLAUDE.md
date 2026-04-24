@@ -8,6 +8,7 @@ This file is a short entrypoint for Claude Code. Shared repository rules live in
 - `docs/agent-guides/validation.md`
 - `docs/agent-guides/components.md`
 - `config/AGENTS.md` when changing files under `config/`
+- `ai/` contains AI tool configs (skills, hooks). See `ai/README.md` for details.
 
 ## Repository Summary
 
