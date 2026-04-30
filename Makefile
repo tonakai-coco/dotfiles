@@ -269,7 +269,6 @@ endif
 	$(ECHO) "$(COLOR_CYAN)[File-level: AI tools]$(COLOR_RESET)"
 	$(Q)for target in \
 		"$(HOME)/.agents/skills" \
-		"$(HOME)/.claude/skills/git-commit-jp" \
 		"$(HOME)/.codex/hooks.json"; do \
 		if [ -L "$$target" ]; then \
 			link_dest=$$(readlink "$$target"); \
@@ -555,7 +554,6 @@ _unlink-karabiner-files:
 # -----------------------------------------------------------------------------
 # Targets:
 #   ~/.agents/skills        -> dotfiles/ai/skills          (directory)
-#   ~/.claude/skills/git-commit-jp -> dotfiles/ai/skills/git-commit-jp (directory)
 #   ~/.codex/hooks.json     -> dotfiles/ai/codex/hooks.json (file)
 _link-ai-configs:
 	@# ~/.agents/skills -> dotfiles/ai/skills
@@ -563,12 +561,6 @@ _link-ai-configs:
 	$(Q)$(MAKE) _create-link \
 		SRC="$(AI_DIR)/skills" \
 		DEST="$(HOME)/.agents/skills" \
-		FORCE=$(FORCE)
-	@# ~/.claude/skills/git-commit-jp -> dotfiles/ai/skills/git-commit-jp
-	$(Q)mkdir -p "$(HOME)/.claude/skills"
-	$(Q)$(MAKE) _create-link \
-		SRC="$(AI_DIR)/skills/git-commit-jp" \
-		DEST="$(HOME)/.claude/skills/git-commit-jp" \
 		FORCE=$(FORCE)
 	@# ~/.codex/hooks.json -> dotfiles/ai/codex/hooks.json
 	$(Q)mkdir -p "$(HOME)/.codex"
@@ -582,7 +574,6 @@ _link-ai-configs:
 # -----------------------------------------------------------------------------
 _unlink-ai-configs:
 	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.agents/skills"
-	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.claude/skills/git-commit-jp"
 	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.codex/hooks.json"
 
 # -----------------------------------------------------------------------------

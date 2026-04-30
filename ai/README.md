@@ -18,10 +18,10 @@ ai/
 | dotfiles ソース | リンク先 |
 |---------------|---------|
 | `ai/skills/` | `~/.agents/skills/` |
-| `ai/skills/git-commit-jp/` | `~/.claude/skills/git-commit-jp/` |
 | `ai/codex/hooks.json` | `~/.codex/hooks.json` |
 
-リンクは `make link`（macOS）で自動適用される。
+リンクは `make link` で自動適用される（macOS / Linux / Windows 対応）。
+Claude Code は `~/.agents/skills/` を参照するため、`~/.claude/skills/` への個別リンクは不要。
 
 ## 除外ファイル
 
