@@ -1,0 +1,38 @@
+{
+  "skill_name": "esp32-idf-build",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "ESP32のプロジェクトをビルドしたいです。プロジェクトは C:\\PROJ\\myapp\\esp32-hello にあります。Windows PowerShell環境でESP-IDFを使っています。どうすればいいですか？",
+      "expected_output": "環境セットアップ（PSプロファイルのsource）とidf.py buildコマンドを含む手順が示される",
+      "files": [],
+      "assertions": [
+        "PowerShellプロファイルのsourceコマンド（. C:\\Espressif\\tools\\Microsoft.v6.0.PowerShell_profile.ps1）が含まれている",
+        "idf.py build コマンドが含まれている",
+        "プロジェクトディレクトリへの移動方法が示されている"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "ESP32のファームウェアをCOM4ポートに書き込んで、そのままシリアルモニターで確認したいです。Windows環境でESP-IDFを使っています。プロジェクトは C:\\PROJ\\myapp\\mqtt-demo にあります。",
+      "expected_output": "PSプロファイルのsource、idf.py -p COM4 flash monitor コマンド、モニター終了方法（Ctrl-]）が示される",
+      "files": [],
+      "assertions": [
+        "PowerShellプロファイルのsourceコマンドが含まれている",
+        "idf.py -p COMx flash monitor の形式のコマンドが含まれている（ポート番号はCOM4または変数）",
+        "モニターの終了方法（Ctrl-]）が記載されている"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "PowerShellで idf.py build を実行したら「idf.py は認識されていません」というエラーが出ました。どうすればいいですか？Windows環境でESP-IDFをインストールしてあります。",
+      "expected_output": "原因がPSプロファイルのsource忘れであることを特定し、正しいsourceコマンドを提示する",
+      "files": [],
+      "assertions": [
+        "問題の原因がPowerShellプロファイルのsource忘れであることが説明されている",
+        "C:\\Espressif\\tools\\Microsoft.v6.0.PowerShell_profile.ps1 のパスが含まれている",
+        "解決策として source（ドット実行）コマンドが示されている"
+      ]
+    }
+  ]
+}
