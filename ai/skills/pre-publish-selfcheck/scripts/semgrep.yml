@@ -1,0 +1,198 @@
+rules:
+  # ============================================================
+  # 1. 社内IPアドレスの検出
+  # ============================================================
+
+  # 1-1. クラスCプライベートIP (192.168.x.x)
+  - id: internal-ip-192-168
+    patterns:
+      - pattern-regex: "192\\.168\\.[0-9]{1,3}\\.[0-9]{1,3}"
+    message: >
+      社内プライベートIPアドレス (192.168.x.x) が含まれています。
+      公開前に削除またはダミー値（例: 192.0.2.x）に置換してください。
+    languages: [generic]
+    severity: WARNING
+    metadata:
+      category: security
+      subcategory: internal-info-leak
+
+  # 1-2. クラスAプライベートIP (10.x.x.x)
+  - id: internal-ip-10
+    patterns:
+      - pattern-regex: "\\b10\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\b"
+    message: >
+      社内プライベートIPアドレス (10.x.x.x) が含まれています。
+      公開前に削除またはダミー値（例: 198.51.100.x）に置換してください。
+    languages: [generic]
+    severity: WARNING
+    metadata:
+      category: security
+      subcategory: internal-info-leak
+
+  # 1-3. クラスBプライベートIP (172.16.0.0 - 172.31.255.255)
+  - id: internal-ip-172
+    patterns:
+      - pattern-regex: "172\\.(1[6-9]|2[0-9]|3[0-1])\\.[0-9]{1,3}\\.[0-9]{1,3}"
+    message: >
+      社内プライベートIPアドレス (172.16-31.x.x) が含まれています。
+      公開前に削除またはダミー値（例: 203.0.113.x）に置換してください。
+    languages: [generic]
+    severity: WARNING
+    metadata:
+      category: security
+      subcategory: internal-info-leak
+
+  # ============================================================
+  # 2. 社内サーバー名・ホスト名の検出
+  # ============================================================
+
+  # 2-1. 典型的な社内サーバー名パターン
+  - id: internal-server-name
+    patterns:
+      - pattern-regex: "(?i)\\b(srv|server|svr|nas|dc|ad|fs|db|web|app|mail|proxy|fw|gw|dns|dhcp|ldap|ntp|ftp|backup|bkup|mgmt|dev|stg|staging|prod|build|jenkins|gitlab|jira|confluence|redmine|zabbix|nagios|ansible|docker|k8s|kube)[-_]?[0-9]{1,4}\\b"
+    message: >
+      社内サーバー名またはホスト名のパターンが検出されました（例: srv01, nas-02 等）。
+      公開前に確認し、必要に応じて削除またはマスクしてください。
+    languages: [generic]
+    severity: WARNING
+    metadata:
+      category: security
+      subcategory: internal-info-leak
+
+  # 2-2. Windowsコンピュータ名 (\\server形式 / UNCパス)
+  - id: internal-unc-path
+    patterns:
+      - pattern-regex: "\\\\\\\\[A-Za-z][A-Za-z0-9_\\-]{1,15}(\\\\[A-Za-z0-9_\\-\\.]+)+"
+    message: >
+      UNCパス（\\\\server\\share 形式）が検出されました。
+      社内ファイルサーバーへのパスが含まれている可能性があります。
+    languages: [generic]
+    severity: WARNING
+    metadata:
+      category: security
+      subcategory: internal-info-leak
+
+  # ============================================================
+  # 3. 社内ドメイン名の検出
+  # ============================================================
+
+  # 3-1. .local ドメイン
+  - id: internal-domain-local
+    patterns:
+      - pattern-regex: "(?i)[a-z0-9][a-z0-9\\-]{0,62}\\.(local)\\b"
+    message: >
+      社内ドメイン (.local) が含まれています。
+      公開前に削除またはダミー値（例: example.com）に置換してください。
+    languages: [generic]
+    severity: WARNING
+    metadata:
+      category: security
+      subcategory: internal-info-leak
+
+  # 3-2. .internal ドメイン
+  - id: internal-domain-internal
+    patterns:
+      - pattern-regex: "(?i)[a-z0-9][a-z0-9\\-]{0,62}\\.(internal)\\b"
+    message: >
+      社内ドメイン (.internal) が含まれています。
+      公開前に削除またはダミー値（例: example.com）に置換してください。
+    languages: [generic]
+    severity: WARNING
+    metadata:
+      category: security
+      subcategory: internal-info-leak
+
+  # 3-3. .corp / .lan / .intra / .home / .private ドメイン
+  - id: internal-domain-other
+    patterns:
+      - pattern-regex: "(?i)[a-z0-9][a-z0-9\\-]{0,62}\\.(corp|lan|intra|home|private)\\b"
+    message: >
+      社内ドメイン (.corp / .lan / .intra / .home / .private) が含まれています。
+      公開前に削除またはダミー値（例: example.com）に置換してください。
+    languages: [generic]
+    severity: WARNING
+    metadata:
+      category: security
+      subcategory: internal-info-leak
+
+  # 3-4. Active Directory ドメイン形式 (ad.xxx / ds.xxx)
+  - id: internal-domain-ad
+    patterns:
+      - pattern-regex: "(?i)\\b(ad|ds)\\.[a-z0-9][a-z0-9\\-]+\\.[a-z]{2,}\\b"
+    message: >
+      Active Directory ドメイン名のパターン（ad.xxx.xxx / ds.xxx.xxx）が検出されました。
+      公開前に確認し、必要に応じて削除またはマスクしてください。
+    languages: [generic]
+    severity: WARNING
+    metadata:
+      category: security
+      subcategory: internal-info-leak
+
+  # ============================================================
+  # 4. VPN設定情報の検出
+  # ============================================================
+
+  # 4-1. VPN関連キーワード（設定値を伴うもの）
+  - id: vpn-config-keywords
+    patterns:
+      - pattern-regex: "(?i)(vpn[_\\-]?(server|gateway|endpoint|host|addr|address|ip|url|domain|tunnel|remote|peer|secret|psk|key|password|passphrase|cert|certificate|username|user|login|auth))\\s*[=:\"']"
+    message: >
+      VPN設定情報のキーワードが検出されました。
+      VPN接続先・認証情報が含まれていないか確認してください。
+    languages: [generic]
+    severity: ERROR
+    metadata:
+      category: security
+      subcategory: vpn-config-leak
+
+  # 4-2. IPsec / IKE 設定
+  - id: vpn-ipsec-config
+    patterns:
+      - pattern-regex: "(?i)(ipsec|ike[_\\-]?(version|v[12]|proposal|policy|transform)|pre[_\\-]?shared[_\\-]?key|phase[12]|esp[_\\-]?(proposal|encryption|integrity)|ah[_\\-]?(proposal|authentication))\\s*[=:\"']"
+    message: >
+      IPsec/IKE VPN設定情報が検出されました。
+      公開前に削除またはマスクしてください。
+    languages: [generic]
+    severity: ERROR
+    metadata:
+      category: security
+      subcategory: vpn-config-leak
+
+  # 4-3. OpenVPN設定ファイルパターン
+  - id: vpn-openvpn-config
+    patterns:
+      - pattern-regex: "(?i)\\b(remote\\s+[a-z0-9\\.\\-]+\\s+[0-9]+|ca\\s+[\"']?[a-z0-9/\\\\_\\-\\.]+\\.crt|cert\\s+[\"']?[a-z0-9/\\\\_\\-\\.]+\\.crt|key\\s+[\"']?[a-z0-9/\\\\_\\-\\.]+\\.key|tls[_\\-]auth|auth[_\\-]user[_\\-]pass)"
+    message: >
+      OpenVPN設定パターンが検出されました。
+      VPN接続先情報や証明書パスが含まれていないか確認してください。
+    languages: [generic]
+    severity: ERROR
+    metadata:
+      category: security
+      subcategory: vpn-config-leak
+
+  # 4-4. WireGuard設定パターン
+  - id: vpn-wireguard-config
+    patterns:
+      - pattern-regex: "(?i)\\b(\\[Interface\\]|\\[Peer\\]|PrivateKey\\s*=|PublicKey\\s*=|PresharedKey\\s*=|Endpoint\\s*=|AllowedIPs\\s*=)"
+    message: >
+      WireGuard VPN設定パターンが検出されました。
+      公開前に鍵情報・接続先を削除またはマスクしてください。
+    languages: [generic]
+    severity: ERROR
+    metadata:
+      category: security
+      subcategory: vpn-config-leak
+
+  # 4-5. SSL-VPN / FortiGate / Cisco AnyConnect 等のVPN設定
+  - id: vpn-vendor-config
+    patterns:
+      - pattern-regex: "(?i)(sslvpn|forticlient|anyconnect|globalprotect|pulse[_\\-]?secure|cisco[_\\-]?vpn|fortivpn)[_\\-]?(config|server|gateway|portal|realm|host)\\s*[=:\"']"
+    message: >
+      ベンダー固有のVPN設定情報（SSL-VPN / FortiGate / Cisco等）が検出されました。
+      公開前に確認し、必要に応じて削除またはマスクしてください。
+    languages: [generic]
+    severity: ERROR
+    metadata:
+      category: security
+      subcategory: vpn-config-leak
