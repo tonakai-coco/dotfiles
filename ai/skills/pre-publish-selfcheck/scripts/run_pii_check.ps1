@@ -51,10 +51,10 @@ function Install-Requirements {
         exit 1
     }
     
-    if (Test-Path "pii_requirements.txt") {
+    if (Test-Path "$script:scriptDir\pii_requirements.txt") {
         Write-Host "pip install -r pii_requirements.txt を実行中..." -ForegroundColor Yellow
         $pyExe = Get-PythonExe
-        & $pyExe -m pip install -r pii_requirements.txt
+        & $pyExe -m pip install -r "$script:scriptDir\pii_requirements.txt"
         
         if ($LASTEXITCODE -eq 0) {
             Write-Host "✓ パッケージインストール完了" -ForegroundColor Green
@@ -76,7 +76,7 @@ function Install-Requirements {
         }
     }
     else {
-        Write-Host "✗ pii_requirements.txt が見つかりません" -ForegroundColor Red
+        Write-Host "✗ pii_requirements.txt が見つかりません: $script:scriptDir\pii_requirements.txt" -ForegroundColor Red
         exit 1
     }
 }
@@ -89,15 +89,15 @@ function Run-PIICheck {
         exit 1
     }
     
-    if (-not (Test-Path "pii_checker.py")) {
-        Write-Host "✗ pii_checker.py が見つかりません" -ForegroundColor Red
+    if (-not (Test-Path "$script:scriptDir\pii_checker.py")) {
+        Write-Host "✗ pii_checker.py が見つかりません: $script:scriptDir\pii_checker.py" -ForegroundColor Red
         exit 1
     }
     
     # チェック実行
     $pyExe = Get-PythonExe
     $env:PYTHONUTF8 = "1"
-    & $pyExe pii_checker.py
+    & $pyExe "$script:scriptDir\pii_checker.py"
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host "`n" + "=" * 70
@@ -123,6 +123,9 @@ function Run-PIICheck {
 # メイン処理
 Clear-Host
 
+# このスクリプト自身のディレクトリを保存（pii_checker.py などの参照に使用）
+$script:scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+
 if ($Help) {
     Show-Help
     exit 0
@@ -136,13 +139,6 @@ if ($Install) {
 # デフォルト動作: チェック実行
 Write-Host "個人情報チェックツール" -ForegroundColor Cyan
 Write-Host "=" * 70
-
-# スクリプトの場所に移動
-$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
-if ($scriptPath) {
-    Set-Location $scriptPath
-}
-
 Write-Host "作業ディレクトリ: $(Get-Location)" -ForegroundColor Gray
 
 Run-PIICheck

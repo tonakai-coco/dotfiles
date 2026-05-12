@@ -142,23 +142,18 @@ Get-ChildItem -Recurse -Include "*.c","*.cpp","*.h","*.hpp" |
 
 ## フェーズ 4: 👤 個人情報チェック（Microsoft Presidio）
 
-`scripts/` にバンドルされたスクリプトをターゲットディレクトリにコピーして実行する。
+`scripts/run_pii_check.ps1` をスキルフォルダから直接実行する（コピー不要）。  
+詳細な使い方は `references/QUICKSTART.md` と `references/PII_CHECK_README.md` を参照。
 
 ```powershell
-# スクリプトをコピー（スキルの scripts/ から）
-$skillScripts = "<スキルパス>\scripts\"
-Copy-Item "$skillScripts\pii_checker.py"        "."
-Copy-Item "$skillScripts\pii_checker_config.ini" "."
-Copy-Item "$skillScripts\pii_requirements.txt"   "."
-Copy-Item "$skillScripts\run_pii_check.ps1"      "."
+$skillScripts = "<スキルパス>\scripts"
 
-# Presidio と spaCy 日本語モデルをインストール
-uv pip install -r pii_requirements.txt --python .\.venv\Scripts\python.exe
-.\.venv\Scripts\python.exe -m spacy download ja_core_news_sm
+# Presidio と spaCy 日本語モデルをインストール（初回のみ）
+& "$skillScripts\run_pii_check.ps1" -Install
 
-# PII チェック実行（UTF-8 モードで）
+# PII チェック実行（カレントディレクトリ = ターゲットディレクトリであること）
 $env:PYTHONUTF8 = "1"
-.\.venv\Scripts\python.exe pii_checker.py
+& "$skillScripts\run_pii_check.ps1"
 ```
 
 **生成ファイル:** `pii_check_report.txt`（`.gitignore` に追加する）
@@ -167,18 +162,7 @@ $env:PYTHONUTF8 = "1"
 Add-Content .gitignore "`npii_check_report.txt"
 ```
 
-**既知の偽陽性パターン:**
-
-| 検出内容                            | 理由                                                     | 対処                       |
-| ----------------------------------- | -------------------------------------------------------- | -------------------------- |
-| `pii_checker.py` 自身               | スクリプト内のダミー名リスト（山田太郎等）を自己検出     | 無視（git 非追跡ファイル） |
-| `pii_checker_config.ini`            | `[known_test_data]` セクションのサンプルデータを自己検出 | 無視                       |
-| README/ドキュメント内のサンプル出力 | ドキュメントが自身の出力例を含む                         | 無視                       |
-| Bluetooth PIN `0000 0000 0000 0000` | 12桁パターンがマイナンバーと誤検出                       | 誤検出と判断               |
-| 漢字2文字の連続                     | `jp_name_kanji` パターンが信頼度0.5で誤検出              | 信頼度と文脈を確認         |
-
-`sdkconfig` のような大きなファイル（～80KB）は Presidio のトークナイザー上限を超えてエラーになる場合がある。
-これらは通常 `.gitignore` 済みなので公開リスクは低い。
+既知の偽陽性パターンは `references/troubleshooting.md` を参照。
 
 **ファームウェアソース（`main/`, `components/`）に 0 件なら合格。**
 
@@ -237,100 +221,21 @@ if (Test-Path ".pr-keywords-blacklist.txt") {
 
 ## 最終レポートの生成
 
-全フェーズ完了後、以下テンプレートに結果を埋めてレポートを生成する。
+全フェーズ完了後、`templates/report_template.md` のテンプレートに結果を埋めてレポートを生成する。
 ファイル名は `PUBLISH_SELFCHECK_REPORT.md` を推奨（リポジトリに含めるか否かはユーザーが判断）。
-
-```markdown
-# 公開前セルフチェックレポート
-
-**実施日**: YYYY-MM-DD  
-**対象ディレクトリ**: <path>  
-**チェック実施者**: <担当者名または "GitHub Copilot による自動チェック">
-
----
-
-## チェック結果サマリー
-
-| フェーズ           | ツール            | 結果  | 要対応    |
-| ------------------ | ----------------- | ----- | --------- |
-| 1 シークレット     | Gitleaks vX.X.X   | ✅/⚠️ | あり/なし |
-| 2 社内ネットワーク | semgrep vX.X.X    | ✅/⚠️ | あり/なし |
-| 3 ライセンス       | REUSE lint vX.X.X | ✅/⚠️ | あり/なし |
-| 4 個人情報 (PII)   | Presidio vX.X.X   | ✅/⚠️ | あり/なし |
-| 5 未発表製品情報   | grep + 目視       | ✅/⚠️ | あり/なし |
-
----
-
-## 実施手順（再現手順）
-
-### フェーズ 0: セットアップ
-
-...（実行したコマンドを記載）
-
-### フェーズ 1: シークレットチェック
-
-...
-
-### フェーズ 2: 社内ネットワーク情報チェック
-
-...
-
-### フェーズ 3: ライセンスチェック
-
-...
-
-### フェーズ 4: 個人情報チェック
-
-...
-
-### フェーズ 5: 未発表製品情報チェック
-
-...
-
----
-
-## チェック時に生成されたファイル
-
-| ファイル               | 内容                      | .gitignore 済み |
-| ---------------------- | ------------------------- | --------------- |
-| `gitleaks-report.json` | Gitleaks スキャン結果     | ✅              |
-| `semgrep.yml`          | semgrep カスタムルール    | ✅              |
-| `pii_check_report.txt` | Presidio PII スキャン結果 | ✅              |
-| `.venv/`               | Python 仮想環境           | ✅              |
-
----
-
-## 詳細結果
-
-（フェーズごとの詳細、推測を含む場合は「※推測」と明記）
-
----
-
-## 推奨対策
-
-（問題あり → 対処内容。問題なし → 「なし」）
-```
 
 ---
 
 ## バンドルリソース
 
-| ファイル                         | 説明                                                                    |
-| -------------------------------- | ----------------------------------------------------------------------- |
-| `scripts/semgrep.yml`            | 社内 IP / サーバー名 / ドメイン / VPN 設定の 14 ルール（フェーズ 2 用） |
-| `scripts/pii_checker.py`         | Microsoft Presidio ベースの PII チェッカー（日本語対応）                |
-| `scripts/pii_checker_config.ini` | PII チェッカー設定ファイル（エンティティ有効化、除外パターン等）        |
-| `scripts/pii_requirements.txt`   | PII チェッカーの Python 依存パッケージ                                  |
-| `scripts/run_pii_check.ps1`      | PII チェッカーの PowerShell ラッパー（-Install / 実行）                 |
-
----
-
-## よくある問題と対処
-
-| 問題                                    | 原因                                                  | 対処                                       |
-| --------------------------------------- | ----------------------------------------------------- | ------------------------------------------ |
-| `UnicodeDecodeError: cp932`             | Windows の日本語ロケールで semgrep が YAML を読めない | `$env:PYTHONUTF8 = "1"` を設定してから実行 |
-| semgrep が自分自身にマッチ              | `semgrep.yml` のコメントにサンプルIPが含まれる        | `--exclude semgrep.yml` オプションを追加   |
-| `reuse lint` が他ディレクトリも報告する | REUSE は Git ルートから全体を走査する                 | 出力をターゲットディレクトリ名でフィルタ   |
-| Presidio がスクリプト自身を検出         | `pii_checker.py` の名前リストを自己検出               | git 非追跡ファイルのため無視               |
-| `sdkconfig` で Presidio がクラッシュ    | ファイルサイズが上限（49,149 bytes）超過              | `.gitignore` 済みなら公開リスクなし        |
+| パス                             | 説明                                                    |
+| -------------------------------- | ------------------------------------------------------- |
+| `scripts/semgrep.yml`            | 社内 IP / サーバー名 / ドメイン / VPN 設定のルール（フェーズ 2） |
+| `scripts/pii_checker.py`         | Microsoft Presidio ベースの PII チェッカー（日本語対応）|
+| `scripts/pii_checker_config.ini` | PII チェッカー設定ファイル                              |
+| `scripts/pii_requirements.txt`   | PII チェッカーの Python 依存パッケージ                  |
+| `scripts/run_pii_check.ps1`      | PII チェッカーの PowerShell ラッパー（-Install / 実行） |
+| `templates/report_template.md`   | 最終レポートのテンプレート                              |
+| `references/troubleshooting.md`  | よくある問題・既知の偽陽性パターン                      |
+| `references/QUICKSTART.md`       | PII チェッカーのクイックスタートガイド                  |
+| `references/PII_CHECK_README.md` | PII チェッカーの詳細ドキュメント                        |
