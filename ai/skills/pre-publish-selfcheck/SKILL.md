@@ -133,9 +133,14 @@ $reuseOutput | Select-String -Pattern "(<ターゲットディレクトリ名>|M
 
 ```powershell
 # Copyright/SPDX が含まれないファイルを列挙
-Get-ChildItem -Recurse -Include "*.c","*.cpp","*.h","*.hpp" |
-  Where-Object { (Get-Content $_.FullName -TotalCount 5 -Encoding UTF8 -ErrorAction SilentlyContinue) -notmatch "Copyright|SPDX" } |
-  Select-Object -ExpandProperty FullName
+# ※ PowerShell では配列に -notmatch を使うと「マッチしない行」が返るだけで
+#   「ファイル全体にマッチしない」判定にはならない。-not (...-match ...) を使うこと。
+git ls-files -- "*.c" "*.h" "*.cpp" "*.hpp" |
+  Where-Object { $_ -notmatch "^build/" -and $_ -notmatch "^test/.*build" } |
+  ForEach-Object {
+    $content = Get-Content $_ -TotalCount 15 -Encoding UTF8 -ErrorAction SilentlyContinue
+    if (-not ($content -match "Copyright|SPDX|copyright|@copyright")) { $_ }
+  }
 ```
 
 ---
@@ -223,6 +228,12 @@ if (Test-Path ".pr-keywords-blacklist.txt") {
 
 全フェーズ完了後、`templates/report_template.md` のテンプレートに結果を埋めてレポートを生成する。
 ファイル名は `PUBLISH_SELFCHECK_REPORT.md` を推奨（リポジトリに含めるか否かはユーザーが判断）。
+
+> ⚠️ **`実施手順（再現手順）` セクションは必ず埋めること。**  
+> テンプレートの `...` プレースホルダーをそのまま残してはならない。  
+> 各フェーズで**実際に実行したコマンド**と、その**出力の要点**（バージョン番号・スキャン件数・
+> 終了コード・検出件数など）をコードブロックで記載する。  
+> このセクションがあることで、チェック内容を第三者が再現・監査できる。
 
 ---
 
