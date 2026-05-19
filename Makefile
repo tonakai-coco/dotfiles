@@ -158,6 +158,9 @@ help:
 	$(ECHO) "  make check         - Show OS detection result"
 	$(ECHO) "  make help          - Show this help"
 	$(ECHO) ""
+	$(ECHO) "$(COLOR_GREEN)Windows:$(COLOR_RESET)"
+	$(ECHO) "  make install-burnttoast - Install BurntToast notification module"
+	$(ECHO) ""
 	$(ECHO) "$(COLOR_GREEN)Options:$(COLOR_RESET)"
 	$(ECHO) "  FORCE=1            - Force overwrite existing files/directories"
 	$(ECHO) "  VERBOSE=1          - Enable verbose output"
@@ -182,6 +185,15 @@ check:
 	$(ECHO) "  DOTFILES_DIR:    $(DOTFILES_DIR)"
 	$(ECHO) "  CONFIG_DIR:      $(CONFIG_DIR)"
 	$(ECHO) "  XDG_CONFIG_HOME: $(XDG_CONFIG_HOME)"
+ifeq ($(DETECTED_OS),windows)
+	$(ECHO) ""
+	$(ECHO) "$(COLOR_CYAN)Windows 依存モジュール$(COLOR_RESET)"
+	$(Q)if powershell.exe -NoProfile -Command "Get-Module -ListAvailable -Name BurntToast" > /dev/null 2>&1; then \
+		echo -e "  $(COLOR_GREEN)[OK]$(COLOR_RESET)      BurntToast"; \
+	else \
+		echo -e "  $(COLOR_RED)[MISSING]$(COLOR_RESET) BurntToast  (run: make install-burnttoast)"; \
+	fi
+endif
 
 # -----------------------------------------------------------------------------
 # Symlink status
@@ -269,7 +281,8 @@ endif
 	$(ECHO) "$(COLOR_CYAN)[File-level: AI tools]$(COLOR_RESET)"
 	$(Q)for target in \
 		"$(HOME)/.agents/skills" \
-		"$(HOME)/.codex/hooks.json"; do \
+		"$(HOME)/.codex/hooks.json" \
+		"$(HOME)/.copilot/hooks/notify.json"; do \
 		if [ -L "$$target" ]; then \
 			link_dest=$$(readlink "$$target"); \
 			echo -e "  $(COLOR_GREEN)[LINK]$(COLOR_RESET) $$target -> $$link_dest"; \
@@ -583,6 +596,18 @@ _unlink-ai-configs:
 	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.agents/skills"
 	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.codex/hooks.json"
 	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.copilot/hooks/notify.json"
+
+# -----------------------------------------------------------------------------
+# Install BurntToast PowerShell module (Windows only)
+# -----------------------------------------------------------------------------
+install-burnttoast:
+ifeq ($(DETECTED_OS),windows)
+	$(ECHO) "$(COLOR_CYAN)Installing BurntToast...$(COLOR_RESET)"
+	powershell.exe -NoProfile -Command "Install-Module BurntToast -Scope CurrentUser -Force"
+	$(ECHO) "$(COLOR_GREEN)BurntToast installed.$(COLOR_RESET)"
+else
+	$(ECHO) "$(COLOR_YELLOW)BurntToast は Windows 専用です（現在の OS: $(DETECTED_OS)）$(COLOR_RESET)"
+endif
 
 # -----------------------------------------------------------------------------
 # Cleanup (alias for unlink)
