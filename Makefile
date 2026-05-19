@@ -553,8 +553,9 @@ _unlink-karabiner-files:
 # Internal: Create AI tool symlinks (home-dir targets, macOS)
 # -----------------------------------------------------------------------------
 # Targets:
-#   ~/.agents/skills        -> dotfiles/ai/skills          (directory)
-#   ~/.codex/hooks.json     -> dotfiles/ai/codex/hooks.json (file)
+#   ~/.agents/skills              -> dotfiles/ai/skills               (directory)
+#   ~/.codex/hooks.json           -> dotfiles/ai/codex/hooks.json     (file)
+#   ~/.copilot/hooks/notify.json  -> dotfiles/ai/copilot/hooks/notify.json (file)
 _link-ai-configs:
 	@# ~/.agents/skills -> dotfiles/ai/skills
 	$(Q)mkdir -p "$(HOME)/.agents"
@@ -568,6 +569,12 @@ _link-ai-configs:
 		SRC="$(AI_DIR)/codex/hooks.json" \
 		DEST="$(HOME)/.codex/hooks.json" \
 		FORCE=$(FORCE)
+	@# ~/.copilot/hooks/notify.json -> dotfiles/ai/copilot/hooks/notify.json
+	$(Q)mkdir -p "$(HOME)/.copilot/hooks"
+	$(Q)$(MAKE) _create-link \
+		SRC="$(AI_DIR)/copilot/hooks/notify.json" \
+		DEST="$(HOME)/.copilot/hooks/notify.json" \
+		FORCE=$(FORCE)
 
 # -----------------------------------------------------------------------------
 # Internal: Remove AI tool symlinks
@@ -575,6 +582,7 @@ _link-ai-configs:
 _unlink-ai-configs:
 	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.agents/skills"
 	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.codex/hooks.json"
+	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.copilot/hooks/notify.json"
 
 # -----------------------------------------------------------------------------
 # Cleanup (alias for unlink)

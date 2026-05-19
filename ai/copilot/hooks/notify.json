@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "hooks": {
+    "notification": [
+      {
+        "type": "command",
+        "powershell": "Import-Module BurntToast; New-BurntToastNotification -Text 'Copilot', '入力を待っています' -Sound 'Alarm2'"
+      }
+    ],
+    "agentStop": [
+      {
+        "type": "command",
+        "powershell": "Import-Module BurntToast; New-BurntToastNotification -Text 'Copilot', '処理が完了しました' -Sound 'Alarm2'"
+      }
+    ]
+  }
+}
