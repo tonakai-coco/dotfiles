@@ -618,7 +618,7 @@ endif
 install-burnttoast:
 ifeq ($(DETECTED_OS),windows)
 	$(ECHO) "$(COLOR_CYAN)Installing BurntToast...$(COLOR_RESET)"
-	powershell.exe -NoProfile -Command "Install-Module BurntToast -Scope CurrentUser -Force"
+	pwsh -NoProfile -Command "Install-Module BurntToast -Scope CurrentUser -Force"
 	$(ECHO) "$(COLOR_GREEN)BurntToast installed.$(COLOR_RESET)"
 else
 	$(ECHO) "$(COLOR_YELLOW)BurntToast は Windows 専用です（現在の OS: $(DETECTED_OS)）$(COLOR_RESET)"

@@ -12,6 +12,24 @@
         "type": "command",
         "powershell": "Import-Module BurntToast; New-BurntToastNotification -Text 'Copilot', '処理が完了しました' -Sound 'Alarm2'"
       }
+    ],
+    "subagentStop": [
+      {
+        "type": "command",
+        "powershell": "Import-Module BurntToast; New-BurntToastNotification -Text 'Copilot', 'サブエージェントが完了しました' -Sound 'Alarm2'"
+      }
+    ],
+    "sessionEnd": [
+      {
+        "type": "command",
+        "powershell": "Import-Module BurntToast; New-BurntToastNotification -Text 'Copilot', 'セッションが終了しました' -Sound 'Alarm2'"
+      }
+    ],
+    "errorOccurred": [
+      {
+        "type": "command",
+        "powershell": "Import-Module BurntToast; New-BurntToastNotification -Text 'Copilot', 'エラーが発生しました' -Sound 'Alarm5'"
+      }
     ]
   }
 }
