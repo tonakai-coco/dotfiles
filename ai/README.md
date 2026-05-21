@@ -9,8 +9,11 @@ ai/
 ├── skills/                          # 共有スキル定義
 │   └── git-commit-jp/
 │       └── SKILL.md                 # 日本語コミットスキル
-└── codex/
-    └── hooks.json                   # Codex CLI の通知フック
+├── codex/
+│   └── hooks.json                   # Codex CLI の通知フック（macOS）
+└── copilot/
+    └── hooks/
+        └── notify.json              # GitHub Copilot の通知フック（Windows）
 ```
 
 ## シンボリックリンクのマッピング
@@ -19,6 +22,7 @@ ai/
 |---------------|---------|
 | `ai/skills/` | `~/.agents/skills/` |
 | `ai/codex/hooks.json` | `~/.codex/hooks.json` |
+| `ai/copilot/hooks/notify.json` | `~/.copilot/hooks/notify.json` |
 
 リンクは `make link` で自動適用される（macOS / Linux / Windows 対応）。
 Claude Code は `~/.agents/skills/` を参照するため、`~/.claude/skills/` への個別リンクは不要。
