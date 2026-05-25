@@ -319,6 +319,7 @@ endif
 			echo -e "  $(COLOR_RED)[NONE]$(COLOR_RESET) $$target (not found)"; \
 		fi; \
 	done
+ifneq ($(DETECTED_OS),windows)
 	$(ECHO) ""
 	$(ECHO) "$(COLOR_CYAN)[File-level: Claude configs]$(COLOR_RESET)"
 	$(Q)for target in \
@@ -333,6 +334,7 @@ endif
 			echo -e "  $(COLOR_RED)[NONE]$(COLOR_RESET) $$target (not found)"; \
 		fi; \
 	done
+endif
 
 # -----------------------------------------------------------------------------
 # Main link target (auto-detect OS)
@@ -677,10 +679,11 @@ _unlink-claude-skills:
 # -----------------------------------------------------------------------------
 # Internal: Create Claude config file symlinks
 # -----------------------------------------------------------------------------
-# Targets (all OS):
+# Targets (macOS/Linux only — statusline-command.sh requires POSIX sh):
 #   ~/.claude/settings.json            -> dotfiles/ai/claude/settings.json
 #   ~/.claude/statusline-command.sh    -> dotfiles/ai/claude/statusline-command.sh
 _link-claude-configs:
+ifneq ($(DETECTED_OS),windows)
 	$(Q)mkdir -p "$(HOME)/.claude"
 	$(Q)$(MAKE) _create-link \
 		SRC="$(AI_DIR)/claude/settings.json" \
@@ -690,13 +693,18 @@ _link-claude-configs:
 		SRC="$(AI_DIR)/claude/statusline-command.sh" \
 		DEST="$(HOME)/.claude/statusline-command.sh" \
 		FORCE=$(FORCE)
+else
+	$(ECHO) "  $(COLOR_YELLOW)[SKIP]$(COLOR_RESET) Claude configs (Windows: statusline-command.sh requires POSIX sh)"
+endif
 
 # -----------------------------------------------------------------------------
 # Internal: Remove Claude config file symlinks
 # -----------------------------------------------------------------------------
 _unlink-claude-configs:
+ifneq ($(DETECTED_OS),windows)
 	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.claude/settings.json"
 	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.claude/statusline-command.sh"
+endif
 
 # -----------------------------------------------------------------------------
 # Install BurntToast PowerShell module (Windows only)

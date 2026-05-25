@@ -21,13 +21,13 @@ ai/
 
 ## シンボリックリンクのマッピング
 
-| dotfiles ソース | リンク先 |
-|---------------|---------|
-| `ai/skills/` | `~/.agents/skills/` |
-| `ai/claude/settings.json` | `~/.claude/settings.json` |
-| `ai/claude/statusline-command.sh` | `~/.claude/statusline-command.sh` |
-| `ai/codex/hooks.json` | `~/.codex/hooks.json` |
-| `ai/copilot/hooks/notify.json` | `~/.copilot/hooks/notify.json` |
+| dotfiles ソース | リンク先 | 対応OS |
+|---------------|---------|--------|
+| `ai/skills/` | `~/.agents/skills/` | 全OS |
+| `ai/claude/settings.json` | `~/.claude/settings.json` | macOS / Linux |
+| `ai/claude/statusline-command.sh` | `~/.claude/statusline-command.sh` | macOS / Linux |
+| `ai/codex/hooks.json` | `~/.codex/hooks.json` | 全OS |
+| `ai/copilot/hooks/notify.json` | `~/.copilot/hooks/notify.json` | Windows |
 
 リンクは `make link` で自動適用される（macOS / Linux / Windows 対応）。
 Claude Code は `~/.agents/skills/` を参照するため、`~/.claude/skills/` への個別リンクは不要。
