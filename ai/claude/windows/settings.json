@@ -1,0 +1,12 @@
+{
+  "enabledPlugins": {
+    "example-skills@anthropic-agent-skills": true,
+    "document-skills@anthropic-agent-skills": true
+  },
+  "language": "Japanese",
+  "editorMode": "vim",
+  "statusLine": {
+    "type": "command",
+    "command": "pwsh -NoProfile -NonInteractive -File ~/.claude/statusline-command.ps1"
+  }
+}

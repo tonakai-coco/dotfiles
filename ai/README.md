@@ -10,8 +10,11 @@ ai/
 │   └── git-commit-jp/
 │       └── SKILL.md                 # 日本語コミットスキル
 ├── claude/
-│   ├── settings.json                # Claude Code ユーザー設定
-│   └── statusline-command.sh        # ステータスライン表示スクリプト
+│   ├── settings.json                # Claude Code ユーザー設定（macOS / Linux）
+│   ├── statusline-command.sh        # ステータスライン表示スクリプト（macOS / Linux）
+│   └── windows/
+│       ├── settings.json            # Claude Code ユーザー設定（Windows）
+│       └── statusline-command.ps1   # ステータスライン表示スクリプト（Windows / pwsh）
 ├── codex/
 │   └── hooks.json                   # Codex CLI の通知フック（macOS）
 └── copilot/
@@ -26,6 +29,8 @@ ai/
 | `ai/skills/` | `~/.agents/skills/` | 全OS |
 | `ai/claude/settings.json` | `~/.claude/settings.json` | macOS / Linux |
 | `ai/claude/statusline-command.sh` | `~/.claude/statusline-command.sh` | macOS / Linux |
+| `ai/claude/windows/settings.json` | `~/.claude/settings.json` | Windows |
+| `ai/claude/windows/statusline-command.ps1` | `~/.claude/statusline-command.ps1` | Windows |
 | `ai/codex/hooks.json` | `~/.codex/hooks.json` | 全OS |
 | `ai/copilot/hooks/notify.json` | `~/.copilot/hooks/notify.json` | Windows |
 

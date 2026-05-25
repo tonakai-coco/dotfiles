@@ -319,9 +319,22 @@ endif
 			echo -e "  $(COLOR_RED)[NONE]$(COLOR_RESET) $$target (not found)"; \
 		fi; \
 	done
-ifneq ($(DETECTED_OS),windows)
 	$(ECHO) ""
 	$(ECHO) "$(COLOR_CYAN)[File-level: Claude configs]$(COLOR_RESET)"
+ifeq ($(DETECTED_OS),windows)
+	$(Q)for target in \
+		"$(HOME)/.claude/settings.json" \
+		"$(HOME)/.claude/statusline-command.ps1"; do \
+		if [ -L "$$target" ]; then \
+			link_dest=$$(readlink "$$target"); \
+			echo -e "  $(COLOR_GREEN)[LINK]$(COLOR_RESET) $$target -> $$link_dest"; \
+		elif [ -e "$$target" ]; then \
+			echo -e "  $(COLOR_YELLOW)[FILE]$(COLOR_RESET) $$target (regular file/directory)"; \
+		else \
+			echo -e "  $(COLOR_RED)[NONE]$(COLOR_RESET) $$target (not found)"; \
+		fi; \
+	done
+else
 	$(Q)for target in \
 		"$(HOME)/.claude/settings.json" \
 		"$(HOME)/.claude/statusline-command.sh"; do \
@@ -679,12 +692,24 @@ _unlink-claude-skills:
 # -----------------------------------------------------------------------------
 # Internal: Create Claude config file symlinks
 # -----------------------------------------------------------------------------
-# Targets (macOS/Linux only — statusline-command.sh requires POSIX sh):
+# macOS/Linux:
 #   ~/.claude/settings.json            -> dotfiles/ai/claude/settings.json
 #   ~/.claude/statusline-command.sh    -> dotfiles/ai/claude/statusline-command.sh
+# Windows:
+#   ~/.claude/settings.json            -> dotfiles/ai/claude/windows/settings.json
+#   ~/.claude/statusline-command.ps1   -> dotfiles/ai/claude/windows/statusline-command.ps1
 _link-claude-configs:
-ifneq ($(DETECTED_OS),windows)
 	$(Q)mkdir -p "$(HOME)/.claude"
+ifeq ($(DETECTED_OS),windows)
+	$(Q)$(MAKE) _create-link \
+		SRC="$(AI_DIR)/claude/windows/settings.json" \
+		DEST="$(HOME)/.claude/settings.json" \
+		FORCE=$(FORCE)
+	$(Q)$(MAKE) _create-link \
+		SRC="$(AI_DIR)/claude/windows/statusline-command.ps1" \
+		DEST="$(HOME)/.claude/statusline-command.ps1" \
+		FORCE=$(FORCE)
+else
 	$(Q)$(MAKE) _create-link \
 		SRC="$(AI_DIR)/claude/settings.json" \
 		DEST="$(HOME)/.claude/settings.json" \
@@ -693,15 +718,16 @@ ifneq ($(DETECTED_OS),windows)
 		SRC="$(AI_DIR)/claude/statusline-command.sh" \
 		DEST="$(HOME)/.claude/statusline-command.sh" \
 		FORCE=$(FORCE)
-else
-	$(ECHO) "  $(COLOR_YELLOW)[SKIP]$(COLOR_RESET) Claude configs (Windows: statusline-command.sh requires POSIX sh)"
 endif
 
 # -----------------------------------------------------------------------------
 # Internal: Remove Claude config file symlinks
 # -----------------------------------------------------------------------------
 _unlink-claude-configs:
-ifneq ($(DETECTED_OS),windows)
+ifeq ($(DETECTED_OS),windows)
+	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.claude/settings.json"
+	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.claude/statusline-command.ps1"
+else
 	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.claude/settings.json"
 	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.claude/statusline-command.sh"
 endif
