@@ -128,7 +128,8 @@ COLOR_CYAN := \033[36m
         _ensure-xdg-config _create-link _remove-link \
         _link-fish-files _unlink-fish-files \
         _link-karabiner-files _unlink-karabiner-files \
-        _link-ai-configs _unlink-ai-configs
+        _link-ai-configs _unlink-ai-configs \
+        _link-claude-skills _unlink-claude-skills
 
 # -----------------------------------------------------------------------------
 # Default target
@@ -302,6 +303,21 @@ ifeq ($(DETECTED_OS),windows)
 		echo -e "  $(COLOR_RED)[NONE]$(COLOR_RESET) $$target (not found)"; \
 	fi
 endif
+	$(ECHO) ""
+	$(ECHO) "$(COLOR_CYAN)[File-level: Claude skills]$(COLOR_RESET)"
+	$(Q)for skill_dir in "$(AI_DIR)/skills"/*/; do \
+		[ -d "$$skill_dir" ] || continue; \
+		skill_name=$$(basename "$$skill_dir"); \
+		target="$(HOME)/.claude/skills/$$skill_name"; \
+		if [ -L "$$target" ]; then \
+			link_dest=$$(readlink "$$target"); \
+			echo -e "  $(COLOR_GREEN)[LINK]$(COLOR_RESET) $$target -> $$link_dest"; \
+		elif [ -e "$$target" ]; then \
+			echo -e "  $(COLOR_YELLOW)[FILE]$(COLOR_RESET) $$target (regular file/directory)"; \
+		else \
+			echo -e "  $(COLOR_RED)[NONE]$(COLOR_RESET) $$target (not found)"; \
+		fi; \
+	done
 
 # -----------------------------------------------------------------------------
 # Main link target (auto-detect OS)
@@ -601,6 +617,8 @@ ifeq ($(DETECTED_OS),windows)
 		DEST="$(HOME)/.copilot/hooks/notify.json" \
 		FORCE=$(FORCE)
 endif
+	@# ~/.claude/skills/<skill> -> dotfiles/ai/skills/<skill>
+	$(Q)$(MAKE) _link-claude-skills FORCE=$(FORCE)
 
 # -----------------------------------------------------------------------------
 # Internal: Remove AI tool symlinks
@@ -611,6 +629,32 @@ _unlink-ai-configs:
 ifeq ($(DETECTED_OS),windows)
 	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.copilot/hooks/notify.json"
 endif
+	$(Q)$(MAKE) _unlink-claude-skills
+
+# -----------------------------------------------------------------------------
+# Internal: Create Claude skill symlinks
+# -----------------------------------------------------------------------------
+# Links each skill directory under dotfiles/ai/skills/ into ~/.claude/skills/
+_link-claude-skills:
+	$(Q)mkdir -p "$(HOME)/.claude/skills"
+	$(Q)for skill_dir in "$(AI_DIR)/skills"/*/; do \
+		[ -d "$$skill_dir" ] || continue; \
+		skill_name=$$(basename "$$skill_dir"); \
+		$(MAKE) _create-link \
+			SRC="$(AI_DIR)/skills/$$skill_name" \
+			DEST="$(HOME)/.claude/skills/$$skill_name" \
+			FORCE=$(FORCE); \
+	done
+
+# -----------------------------------------------------------------------------
+# Internal: Remove Claude skill symlinks
+# -----------------------------------------------------------------------------
+_unlink-claude-skills:
+	$(Q)for skill_dir in "$(AI_DIR)/skills"/*/; do \
+		[ -d "$$skill_dir" ] || continue; \
+		skill_name=$$(basename "$$skill_dir"); \
+		$(MAKE) _remove-link DEST="$(HOME)/.claude/skills/$$skill_name"; \
+	done
 
 # -----------------------------------------------------------------------------
 # Install BurntToast PowerShell module (Windows only)
