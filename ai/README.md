@@ -9,6 +9,12 @@ ai/
 ├── skills/                          # 共有スキル定義
 │   └── git-commit-jp/
 │       └── SKILL.md                 # 日本語コミットスキル
+├── claude/
+│   ├── settings.json                # Claude Code ユーザー設定（macOS / Linux）
+│   ├── statusline-command.sh        # ステータスライン表示スクリプト（macOS / Linux）
+│   └── windows/
+│       ├── settings.json            # Claude Code ユーザー設定（Windows）
+│       └── statusline-command.ps1   # ステータスライン表示スクリプト（Windows / pwsh）
 ├── codex/
 │   └── hooks.json                   # Codex CLI の通知フック（macOS）
 └── copilot/
@@ -18,11 +24,15 @@ ai/
 
 ## シンボリックリンクのマッピング
 
-| dotfiles ソース | リンク先 |
-|---------------|---------|
-| `ai/skills/` | `~/.agents/skills/` |
-| `ai/codex/hooks.json` | `~/.codex/hooks.json` |
-| `ai/copilot/hooks/notify.json` | `~/.copilot/hooks/notify.json` |
+| dotfiles ソース | リンク先 | 対応OS |
+|---------------|---------|--------|
+| `ai/skills/` | `~/.agents/skills/` | 全OS |
+| `ai/claude/settings.json` | `~/.claude/settings.json` | macOS / Linux |
+| `ai/claude/statusline-command.sh` | `~/.claude/statusline-command.sh` | macOS / Linux |
+| `ai/claude/windows/settings.json` | `~/.claude/settings.json` | Windows |
+| `ai/claude/windows/statusline-command.ps1` | `~/.claude/statusline-command.ps1` | Windows |
+| `ai/codex/hooks.json` | `~/.codex/hooks.json` | 全OS |
+| `ai/copilot/hooks/notify.json` | `~/.copilot/hooks/notify.json` | Windows |
 
 リンクは `make link` で自動適用される（macOS / Linux / Windows 対応）。
 Claude Code は `~/.agents/skills/` を参照するため、`~/.claude/skills/` への個別リンクは不要。
@@ -35,6 +45,8 @@ Claude Code は `~/.agents/skills/` を参照するため、`~/.claude/skills/` 
 - セッションデータ・キャッシュ
 - `~/.codex/rules/default.rules`（過去の承認操作を自動蓄積したファイル）
 - `~/.claude/skills/*.skill`（スキルディレクトリの自動生成バイナリ）
+- `~/.claude/history.jsonl`, `~/.claude/stats-cache.json`（自動生成データ）
+- `~/.claude/CLAUDE.md`（プロジェクト固有の指示ファイル）
 
 ## 新しいスキルを追加する場合
 

@@ -129,7 +129,8 @@ COLOR_CYAN := \033[36m
         _link-fish-files _unlink-fish-files \
         _link-karabiner-files _unlink-karabiner-files \
         _link-ai-configs _unlink-ai-configs \
-        _link-claude-skills _unlink-claude-skills
+        _link-claude-skills _unlink-claude-skills \
+        _link-claude-configs _unlink-claude-configs
 
 # -----------------------------------------------------------------------------
 # Default target
@@ -318,6 +319,35 @@ endif
 			echo -e "  $(COLOR_RED)[NONE]$(COLOR_RESET) $$target (not found)"; \
 		fi; \
 	done
+	$(ECHO) ""
+	$(ECHO) "$(COLOR_CYAN)[File-level: Claude configs]$(COLOR_RESET)"
+ifeq ($(DETECTED_OS),windows)
+	$(Q)for target in \
+		"$(HOME)/.claude/settings.json" \
+		"$(HOME)/.claude/statusline-command.ps1"; do \
+		if [ -L "$$target" ]; then \
+			link_dest=$$(readlink "$$target"); \
+			echo -e "  $(COLOR_GREEN)[LINK]$(COLOR_RESET) $$target -> $$link_dest"; \
+		elif [ -e "$$target" ]; then \
+			echo -e "  $(COLOR_YELLOW)[FILE]$(COLOR_RESET) $$target (regular file/directory)"; \
+		else \
+			echo -e "  $(COLOR_RED)[NONE]$(COLOR_RESET) $$target (not found)"; \
+		fi; \
+	done
+else
+	$(Q)for target in \
+		"$(HOME)/.claude/settings.json" \
+		"$(HOME)/.claude/statusline-command.sh"; do \
+		if [ -L "$$target" ]; then \
+			link_dest=$$(readlink "$$target"); \
+			echo -e "  $(COLOR_GREEN)[LINK]$(COLOR_RESET) $$target -> $$link_dest"; \
+		elif [ -e "$$target" ]; then \
+			echo -e "  $(COLOR_YELLOW)[FILE]$(COLOR_RESET) $$target (regular file/directory)"; \
+		else \
+			echo -e "  $(COLOR_RED)[NONE]$(COLOR_RESET) $$target (not found)"; \
+		fi; \
+	done
+endif
 
 # -----------------------------------------------------------------------------
 # Main link target (auto-detect OS)
@@ -619,6 +649,8 @@ ifeq ($(DETECTED_OS),windows)
 endif
 	@# ~/.claude/skills/<skill> -> dotfiles/ai/skills/<skill>
 	$(Q)$(MAKE) _link-claude-skills FORCE=$(FORCE)
+	@# ~/.claude/settings.json, statusline-command.sh -> dotfiles/ai/claude/
+	$(Q)$(MAKE) _link-claude-configs FORCE=$(FORCE)
 
 # -----------------------------------------------------------------------------
 # Internal: Remove AI tool symlinks
@@ -630,6 +662,7 @@ ifeq ($(DETECTED_OS),windows)
 	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.copilot/hooks/notify.json"
 endif
 	$(Q)$(MAKE) _unlink-claude-skills
+	$(Q)$(MAKE) _unlink-claude-configs
 
 # -----------------------------------------------------------------------------
 # Internal: Create Claude skill symlinks
@@ -655,6 +688,49 @@ _unlink-claude-skills:
 		skill_name=$$(basename "$$skill_dir"); \
 		$(MAKE) _remove-link DEST="$(HOME)/.claude/skills/$$skill_name"; \
 	done
+
+# -----------------------------------------------------------------------------
+# Internal: Create Claude config file symlinks
+# -----------------------------------------------------------------------------
+# macOS/Linux:
+#   ~/.claude/settings.json            -> dotfiles/ai/claude/settings.json
+#   ~/.claude/statusline-command.sh    -> dotfiles/ai/claude/statusline-command.sh
+# Windows:
+#   ~/.claude/settings.json            -> dotfiles/ai/claude/windows/settings.json
+#   ~/.claude/statusline-command.ps1   -> dotfiles/ai/claude/windows/statusline-command.ps1
+_link-claude-configs:
+	$(Q)mkdir -p "$(HOME)/.claude"
+ifeq ($(DETECTED_OS),windows)
+	$(Q)$(MAKE) _create-link \
+		SRC="$(AI_DIR)/claude/windows/settings.json" \
+		DEST="$(HOME)/.claude/settings.json" \
+		FORCE=$(FORCE)
+	$(Q)$(MAKE) _create-link \
+		SRC="$(AI_DIR)/claude/windows/statusline-command.ps1" \
+		DEST="$(HOME)/.claude/statusline-command.ps1" \
+		FORCE=$(FORCE)
+else
+	$(Q)$(MAKE) _create-link \
+		SRC="$(AI_DIR)/claude/settings.json" \
+		DEST="$(HOME)/.claude/settings.json" \
+		FORCE=$(FORCE)
+	$(Q)$(MAKE) _create-link \
+		SRC="$(AI_DIR)/claude/statusline-command.sh" \
+		DEST="$(HOME)/.claude/statusline-command.sh" \
+		FORCE=$(FORCE)
+endif
+
+# -----------------------------------------------------------------------------
+# Internal: Remove Claude config file symlinks
+# -----------------------------------------------------------------------------
+_unlink-claude-configs:
+ifeq ($(DETECTED_OS),windows)
+	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.claude/settings.json"
+	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.claude/statusline-command.ps1"
+else
+	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.claude/settings.json"
+	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.claude/statusline-command.sh"
+endif
 
 # -----------------------------------------------------------------------------
 # Install BurntToast PowerShell module (Windows only)
