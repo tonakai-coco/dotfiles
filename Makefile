@@ -509,7 +509,12 @@ _create-link:
 	fi
 	@# Check destination state and handle accordingly
 	$(Q)if [ -L "$(DEST)" ]; then \
-		echo -e "  $(COLOR_YELLOW)[DEL]$(COLOR_RESET)  Removing existing link: $(DEST)"; \
+		current=$$(readlink "$(DEST)"); \
+		if [ "$$current" = "$(SRC)" ]; then \
+			echo -e "  $(COLOR_GREEN)[OK]$(COLOR_RESET)   Already linked: $(DEST)"; \
+			exit 0; \
+		fi; \
+		echo -e "  $(COLOR_YELLOW)[DEL]$(COLOR_RESET)  Removing stale link: $(DEST)"; \
 		rm "$(DEST)"; \
 	elif [ -e "$(DEST)" ]; then \
 		if [ "$(FORCE)" = "1" ]; then \
