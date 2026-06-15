@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -Command \"Import-Module BurntToast; New-BurntToastNotification -Text 'Codex CLI', 'Codexの処理が停止しました' -Sound 'Alarm2'\""
+          }
+        ]
+      }
+    ]
+  }
+}

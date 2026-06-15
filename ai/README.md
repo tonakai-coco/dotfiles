@@ -16,7 +16,9 @@ ai/
 │       ├── settings.json            # Claude Code ユーザー設定（Windows）
 │       └── statusline-command.ps1   # ステータスライン表示スクリプト（Windows / pwsh）
 ├── codex/
-│   └── hooks.json                   # Codex CLI の通知フック（macOS）
+│   ├── hooks.json                   # Codex CLI の通知フック（macOS / Linux）
+│   └── windows/
+│       └── hooks.json               # Codex CLI の通知フック（Windows）
 └── copilot/
     ├── agents/                      # GitHub Copilot カスタムエージェント
     └── hooks/
@@ -32,7 +34,8 @@ ai/
 | `ai/claude/statusline-command.sh` | `~/.claude/statusline-command.sh` | macOS / Linux |
 | `ai/claude/windows/settings.json` | `~/.claude/settings.json` | Windows |
 | `ai/claude/windows/statusline-command.ps1` | `~/.claude/statusline-command.ps1` | Windows |
-| `ai/codex/hooks.json` | `~/.codex/hooks.json` | 全OS |
+| `ai/codex/hooks.json` | `~/.codex/hooks.json` | macOS / Linux |
+| `ai/codex/windows/hooks.json` | `~/.codex/hooks.json` | Windows |
 | `ai/copilot/agents/` | `~/.copilot/agents/` | Windows |
 | `ai/copilot/hooks/notify.json` | `~/.copilot/hooks/notify.json` | Windows |
 
