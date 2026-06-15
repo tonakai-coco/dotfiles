@@ -631,7 +631,8 @@ _unlink-karabiner-files:
 # -----------------------------------------------------------------------------
 # Targets (all OS):
 #   ~/.agents/skills              -> dotfiles/ai/skills               (directory)
-#   ~/.codex/hooks.json           -> dotfiles/ai/codex/hooks.json     (file)
+#   ~/.codex/hooks.json           -> dotfiles/ai/codex/hooks.json     (file, macOS/Linux)
+#   ~/.codex/hooks.json           -> dotfiles/ai/codex/windows/hooks.json (file, Windows)
 # Targets (Windows only):
 #   ~/.copilot/agents             -> dotfiles/ai/copilot/agents       (directory)
 #   ~/.copilot/hooks/notify.json  -> dotfiles/ai/copilot/hooks/notify.json (file)
@@ -642,12 +643,21 @@ _link-ai-configs:
 		SRC="$(AI_DIR)/skills" \
 		DEST="$(HOME)/.agents/skills" \
 		FORCE=$(FORCE)
+ifeq ($(DETECTED_OS),windows)
+	@# ~/.codex/hooks.json -> dotfiles/ai/codex/windows/hooks.json
+	$(Q)mkdir -p "$(HOME)/.codex"
+	$(Q)$(MAKE) _create-link \
+		SRC="$(AI_DIR)/codex/windows/hooks.json" \
+		DEST="$(HOME)/.codex/hooks.json" \
+		FORCE=$(FORCE)
+else
 	@# ~/.codex/hooks.json -> dotfiles/ai/codex/hooks.json
 	$(Q)mkdir -p "$(HOME)/.codex"
 	$(Q)$(MAKE) _create-link \
 		SRC="$(AI_DIR)/codex/hooks.json" \
 		DEST="$(HOME)/.codex/hooks.json" \
 		FORCE=$(FORCE)
+endif
 ifeq ($(DETECTED_OS),windows)
 	@# ~/.copilot/agents -> dotfiles/ai/copilot/agents
 	$(Q)mkdir -p "$(HOME)/.copilot"
