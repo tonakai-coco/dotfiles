@@ -8,5 +8,17 @@
   "statusLine": {
     "type": "command",
     "command": "pwsh -NoProfile -NonInteractive -File ~/.claude/statusline-command.ps1"
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -Command \"Import-Module BurntToast; New-BurntToastNotification -Text 'Claude Code', 'エージェントの作業が停止しました'\""
+          }
+        ]
+      }
+    ]
   }
 }

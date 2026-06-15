@@ -8,5 +8,17 @@
   "statusLine": {
     "type": "command",
     "command": "sh ~/.claude/statusline-command.sh"
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "osascript -e 'display notification \"Claude Codeのエージェント作業が停止しました\" with title \"Claude Code\" sound name \"Glass\"'"
+          }
+        ]
+      }
+    ]
   }
 }
