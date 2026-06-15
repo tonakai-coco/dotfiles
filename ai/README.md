@@ -18,6 +18,7 @@ ai/
 ├── codex/
 │   └── hooks.json                   # Codex CLI の通知フック（macOS）
 └── copilot/
+    ├── agents/                      # GitHub Copilot カスタムエージェント
     └── hooks/
         └── notify.json              # GitHub Copilot の通知フック（Windows）
 ```
@@ -32,6 +33,7 @@ ai/
 | `ai/claude/windows/settings.json` | `~/.claude/settings.json` | Windows |
 | `ai/claude/windows/statusline-command.ps1` | `~/.claude/statusline-command.ps1` | Windows |
 | `ai/codex/hooks.json` | `~/.codex/hooks.json` | 全OS |
+| `ai/copilot/agents/` | `~/.copilot/agents/` | Windows |
 | `ai/copilot/hooks/notify.json` | `~/.copilot/hooks/notify.json` | Windows |
 
 リンクは `make link` で自動適用される（macOS / Linux / Windows 対応）。

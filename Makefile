@@ -294,15 +294,18 @@ endif
 		fi; \
 	done
 ifeq ($(DETECTED_OS),windows)
-	$(Q)target="$(HOME)/.copilot/hooks/notify.json"; \
-	if [ -L "$$target" ]; then \
-		link_dest=$$(readlink "$$target"); \
-		echo -e "  $(COLOR_GREEN)[LINK]$(COLOR_RESET) $$target -> $$link_dest"; \
-	elif [ -e "$$target" ]; then \
-		echo -e "  $(COLOR_YELLOW)[FILE]$(COLOR_RESET) $$target (regular file/directory)"; \
-	else \
-		echo -e "  $(COLOR_RED)[NONE]$(COLOR_RESET) $$target (not found)"; \
-	fi
+	$(Q)for target in \
+		"$(HOME)/.copilot/agents" \
+		"$(HOME)/.copilot/hooks/notify.json"; do \
+		if [ -L "$$target" ]; then \
+			link_dest=$$(readlink "$$target"); \
+			echo -e "  $(COLOR_GREEN)[LINK]$(COLOR_RESET) $$target -> $$link_dest"; \
+		elif [ -e "$$target" ]; then \
+			echo -e "  $(COLOR_YELLOW)[FILE]$(COLOR_RESET) $$target (regular file/directory)"; \
+		else \
+			echo -e "  $(COLOR_RED)[NONE]$(COLOR_RESET) $$target (not found)"; \
+		fi; \
+	done
 endif
 	$(ECHO) ""
 	$(ECHO) "$(COLOR_CYAN)[File-level: Claude skills]$(COLOR_RESET)"
@@ -630,6 +633,7 @@ _unlink-karabiner-files:
 #   ~/.agents/skills              -> dotfiles/ai/skills               (directory)
 #   ~/.codex/hooks.json           -> dotfiles/ai/codex/hooks.json     (file)
 # Targets (Windows only):
+#   ~/.copilot/agents             -> dotfiles/ai/copilot/agents       (directory)
 #   ~/.copilot/hooks/notify.json  -> dotfiles/ai/copilot/hooks/notify.json (file)
 _link-ai-configs:
 	@# ~/.agents/skills -> dotfiles/ai/skills
@@ -645,6 +649,12 @@ _link-ai-configs:
 		DEST="$(HOME)/.codex/hooks.json" \
 		FORCE=$(FORCE)
 ifeq ($(DETECTED_OS),windows)
+	@# ~/.copilot/agents -> dotfiles/ai/copilot/agents
+	$(Q)mkdir -p "$(HOME)/.copilot"
+	$(Q)$(MAKE) _create-link \
+		SRC="$(AI_DIR)/copilot/agents" \
+		DEST="$(HOME)/.copilot/agents" \
+		FORCE=$(FORCE)
 	@# ~/.copilot/hooks/notify.json -> dotfiles/ai/copilot/hooks/notify.json
 	$(Q)mkdir -p "$(HOME)/.copilot/hooks"
 	$(Q)$(MAKE) _create-link \
@@ -664,6 +674,7 @@ _unlink-ai-configs:
 	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.agents/skills"
 	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.codex/hooks.json"
 ifeq ($(DETECTED_OS),windows)
+	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.copilot/agents"
 	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.copilot/hooks/notify.json"
 endif
 	$(Q)$(MAKE) _unlink-claude-skills
