@@ -1,14 +1,4 @@
 {
-  "enabledPlugins": {
-    "example-skills@anthropic-agent-skills": true,
-    "document-skills@anthropic-agent-skills": true
-  },
-  "language": "Japanese",
-  "editorMode": "vim",
-  "statusLine": {
-    "type": "command",
-    "command": "sh ~/.claude/statusline-command.sh"
-  },
   "hooks": {
     "Stop": [
       {
@@ -20,5 +10,17 @@
         ]
       }
     ]
-  }
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "sh ~/.claude/statusline-command.sh"
+  },
+  "enabledPlugins": {
+    "example-skills@anthropic-agent-skills": true,
+    "document-skills@anthropic-agent-skills": true
+  },
+  "language": "Japanese",
+  "tui": "fullscreen",
+  "theme": "dark",
+  "editorMode": "vim"
 }
