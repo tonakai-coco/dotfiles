@@ -1,4 +1,0 @@
-interface:
-  display_name: "noteからSalfinへ下書き転記"
-  short_description: "note記事をSalfinの下書きへ書式付きで転記する"
-  default_prompt: "Use $note-to-salfin-draft to copy this note draft into a Salfin draft without publishing it."
