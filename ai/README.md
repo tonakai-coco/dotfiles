@@ -2,7 +2,7 @@
 
 AI エージェントツールの設定ファイルを管理するディレクトリです。
 
-スキル本体は `/Users/y_kashimura/Documents/ai-plugins` で管理します。このリポジトリにはスキルを重複して保持せず、必要なプロジェクトへ手動でコピーします。
+スキル本体は `*/ai-plugins` で管理します。このリポジトリにはスキルを重複して保持せず、必要なプロジェクトへ手動でコピーします。
 
 ## ディレクトリ構成
 
@@ -26,18 +26,18 @@ ai/
 
 ## 設定ファイルのリンク管理
 
-| dotfiles ソース | リンク先 | 対応OS |
-|---------------|---------|--------|
-| `ai/claude/settings.json` | `~/.claude/settings.json` | macOS / Linux |
-| `ai/claude/statusline-command.sh` | `~/.claude/statusline-command.sh` | macOS / Linux |
-| `ai/claude/windows/settings.json` | `~/.claude/settings.json` | Windows |
-| `ai/claude/windows/statusline-command.ps1` | `~/.claude/statusline-command.ps1` | Windows |
-| `ai/codex/hooks.json` | `~/.codex/hooks.json` | macOS / Linux |
-| `ai/codex/windows/hooks.json` | `~/.codex/hooks.json` | Windows |
-| `ai/copilot/agents/` | `~/.copilot/agents/` | Windows |
-| `ai/copilot/hooks/notify.json` | `~/.copilot/hooks/notify.json` | Windows |
+| dotfiles ソース                            | リンク先                           | 対応OS        |
+| ------------------------------------------ | ---------------------------------- | ------------- |
+| `ai/claude/settings.json`                  | `~/.claude/settings.json`          | macOS / Linux |
+| `ai/claude/statusline-command.sh`          | `~/.claude/statusline-command.sh`  | macOS / Linux |
+| `ai/claude/windows/settings.json`          | `~/.claude/settings.json`          | Windows       |
+| `ai/claude/windows/statusline-command.ps1` | `~/.claude/statusline-command.ps1` | Windows       |
+| `ai/codex/hooks.json`                      | `~/.codex/hooks.json`              | macOS / Linux |
+| `ai/codex/windows/hooks.json`              | `~/.codex/hooks.json`              | Windows       |
+| `ai/copilot/agents/`                       | `~/.copilot/agents/`               | Windows       |
+| `ai/copilot/hooks/notify.json`             | `~/.copilot/hooks/notify.json`     | Windows       |
 
-上記の非スキル設定・フックは `make link` で自動適用します。スキルについてはMakefileからリンクせず、`/Users/y_kashimura/Documents/ai-plugins` のplugin内スキルを必要なプロジェクトへ手動でコピーします。
+上記の非スキル設定・フックは `make link` で自動適用します。スキルについてはMakefileからリンクせず、`*/ai-plugins` のplugin内スキルを必要なプロジェクトへ手動でコピーします。
 
 ## 除外ファイル
 
@@ -52,6 +52,6 @@ ai/
 
 ## スキルを追加・利用する場合
 
-1. `/Users/y_kashimura/Documents/ai-plugins/plugins/<plugin-name>/skills/<skill-name>/` を更新する
+1. `*/ai-plugins/plugins/<plugin-name>/skills/<skill-name>/` を更新する
 2. 必要なプロジェクトへスキルディレクトリを手動でコピーする
 3. 対象プロジェクト側でスキルが読み込まれることを確認する
