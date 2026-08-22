@@ -1,4 +1,0 @@
-interface:
-  display_name: "Notion CLI"
-  short_description: "Use ntn for Notion API, pages, files, and Workers"
-  default_prompt: "Use $notion-cli to inspect and execute a Notion CLI task safely."

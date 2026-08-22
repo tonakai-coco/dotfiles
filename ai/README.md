@@ -1,14 +1,13 @@
 # ai/
 
-AI エージェントツールのカスタム設定を管理するディレクトリ。
+AI エージェントツールの設定ファイルを管理するディレクトリです。
+
+スキル本体は `*/ai-plugins` で管理します。このリポジトリにはスキルを重複して保持せず、必要なプロジェクトへ手動でコピーします。
 
 ## ディレクトリ構成
 
 ```
 ai/
-├── skills/                          # 共有スキル定義
-│   └── git-commit-jp/
-│       └── SKILL.md                 # 日本語コミットスキル
 ├── claude/
 │   ├── settings.json                # Claude Code ユーザー設定（macOS / Linux）
 │   ├── statusline-command.sh        # ステータスライン表示スクリプト（macOS / Linux）
@@ -25,22 +24,20 @@ ai/
         └── notify.json              # GitHub Copilot の通知フック（Windows）
 ```
 
-## シンボリックリンクのマッピング
+## 設定ファイルのリンク管理
 
-| dotfiles ソース | リンク先 | 対応OS |
-|---------------|---------|--------|
-| `ai/skills/` | `~/.agents/skills/` | 全OS |
-| `ai/claude/settings.json` | `~/.claude/settings.json` | macOS / Linux |
-| `ai/claude/statusline-command.sh` | `~/.claude/statusline-command.sh` | macOS / Linux |
-| `ai/claude/windows/settings.json` | `~/.claude/settings.json` | Windows |
-| `ai/claude/windows/statusline-command.ps1` | `~/.claude/statusline-command.ps1` | Windows |
-| `ai/codex/hooks.json` | `~/.codex/hooks.json` | macOS / Linux |
-| `ai/codex/windows/hooks.json` | `~/.codex/hooks.json` | Windows |
-| `ai/copilot/agents/` | `~/.copilot/agents/` | Windows |
-| `ai/copilot/hooks/notify.json` | `~/.copilot/hooks/notify.json` | Windows |
+| dotfiles ソース                            | リンク先                           | 対応OS        |
+| ------------------------------------------ | ---------------------------------- | ------------- |
+| `ai/claude/settings.json`                  | `~/.claude/settings.json`          | macOS / Linux |
+| `ai/claude/statusline-command.sh`          | `~/.claude/statusline-command.sh`  | macOS / Linux |
+| `ai/claude/windows/settings.json`          | `~/.claude/settings.json`          | Windows       |
+| `ai/claude/windows/statusline-command.ps1` | `~/.claude/statusline-command.ps1` | Windows       |
+| `ai/codex/hooks.json`                      | `~/.codex/hooks.json`              | macOS / Linux |
+| `ai/codex/windows/hooks.json`              | `~/.codex/hooks.json`              | Windows       |
+| `ai/copilot/agents/`                       | `~/.copilot/agents/`               | Windows       |
+| `ai/copilot/hooks/notify.json`             | `~/.copilot/hooks/notify.json`     | Windows       |
 
-リンクは `make link` で自動適用される（macOS / Linux / Windows 対応）。
-Claude Code は `~/.agents/skills/` を参照するため、`~/.claude/skills/` への個別リンクは不要。
+上記の非スキル設定・フックは `make link` で自動適用します。スキルについてはMakefileからリンクせず、`*/ai-plugins` のplugin内スキルを必要なプロジェクトへ手動でコピーします。
 
 ## 除外ファイル
 
@@ -53,8 +50,8 @@ Claude Code は `~/.agents/skills/` を参照するため、`~/.claude/skills/` 
 - `~/.claude/history.jsonl`, `~/.claude/stats-cache.json`（自動生成データ）
 - `~/.claude/CLAUDE.md`（プロジェクト固有の指示ファイル）
 
-## 新しいスキルを追加する場合
+## スキルを追加・利用する場合
 
-1. `ai/skills/<skill-name>/SKILL.md` を作成する
-2. `make link FORCE=1` を実行してリンクを適用する
-3. Claude Code と Codex で `/skill-name` として使用できることを確認する
+1. `*/ai-plugins/plugins/<plugin-name>/skills/<skill-name>/` を更新する
+2. 必要なプロジェクトへスキルディレクトリを手動でコピーする
+3. 対象プロジェクト側でスキルが読み込まれることを確認する

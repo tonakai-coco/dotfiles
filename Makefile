@@ -128,9 +128,8 @@ COLOR_CYAN := \033[36m
         _ensure-xdg-config _create-link _remove-link \
         _link-fish-files _unlink-fish-files \
         _link-karabiner-files _unlink-karabiner-files \
+        _cleanup-migrated-ai-skill-links \
         _link-ai-configs _unlink-ai-configs \
-        _link-codex-skills _unlink-codex-skills \
-        _link-claude-skills _unlink-claude-skills \
         _link-claude-configs _unlink-claude-configs
 
 # -----------------------------------------------------------------------------
@@ -283,7 +282,6 @@ endif
 	$(ECHO) ""
 	$(ECHO) "$(COLOR_CYAN)[File-level: AI tools]$(COLOR_RESET)"
 	$(Q)for target in \
-		"$(HOME)/.agents/skills" \
 		"$(HOME)/.codex/hooks.json"; do \
 		if [ -L "$$target" ]; then \
 			link_dest=$$(readlink "$$target"); \
@@ -308,36 +306,6 @@ ifeq ($(DETECTED_OS),windows)
 		fi; \
 	done
 endif
-	$(ECHO) ""
-	$(ECHO) "$(COLOR_CYAN)[File-level: Codex skills]$(COLOR_RESET)"
-	$(Q)for skill_dir in "$(AI_DIR)/codex/skills"/*/; do \
-		[ -d "$$skill_dir" ] || continue; \
-		skill_name=$$(basename "$$skill_dir"); \
-		target="$(HOME)/.codex/skills/$$skill_name"; \
-		if [ -L "$$target" ]; then \
-			link_dest=$$(readlink "$$target"); \
-			echo -e "  $(COLOR_GREEN)[LINK]$(COLOR_RESET) $$target -> $$link_dest"; \
-		elif [ -e "$$target" ]; then \
-			echo -e "  $(COLOR_YELLOW)[FILE]$(COLOR_RESET) $$target (regular file/directory)"; \
-		else \
-			echo -e "  $(COLOR_RED)[NONE]$(COLOR_RESET) $$target (not found)"; \
-		fi; \
-	done
-	$(ECHO) ""
-	$(ECHO) "$(COLOR_CYAN)[File-level: Claude skills]$(COLOR_RESET)"
-	$(Q)for skill_dir in "$(AI_DIR)/skills"/*/; do \
-		[ -d "$$skill_dir" ] || continue; \
-		skill_name=$$(basename "$$skill_dir"); \
-		target="$(HOME)/.claude/skills/$$skill_name"; \
-		if [ -L "$$target" ]; then \
-			link_dest=$$(readlink "$$target"); \
-			echo -e "  $(COLOR_GREEN)[LINK]$(COLOR_RESET) $$target -> $$link_dest"; \
-		elif [ -e "$$target" ]; then \
-			echo -e "  $(COLOR_YELLOW)[FILE]$(COLOR_RESET) $$target (regular file/directory)"; \
-		else \
-			echo -e "  $(COLOR_RED)[NONE]$(COLOR_RESET) $$target (not found)"; \
-		fi; \
-	done
 	$(ECHO) ""
 	$(ECHO) "$(COLOR_CYAN)[File-level: Claude configs]$(COLOR_RESET)"
 ifeq ($(DETECTED_OS),windows)
@@ -643,25 +611,17 @@ _unlink-karabiner-files:
 	done
 
 # -----------------------------------------------------------------------------
-# Internal: Create AI tool symlinks (home-dir targets, all OS)
+# Internal: Create AI tool configuration symlinks (home-dir targets, all OS)
 # -----------------------------------------------------------------------------
 # Targets (all OS):
-#   ~/.agents/skills              -> dotfiles/ai/skills               (directory)
-#   ~/.codex/skills/<skill>       -> dotfiles/ai/codex/skills/<skill> (directory)
 #   ~/.codex/hooks.json           -> dotfiles/ai/codex/hooks.json     (file, macOS/Linux)
 #   ~/.codex/hooks.json           -> dotfiles/ai/codex/windows/hooks.json (file, Windows)
 # Targets (Windows only):
 #   ~/.copilot/agents             -> dotfiles/ai/copilot/agents       (directory)
 #   ~/.copilot/hooks/notify.json  -> dotfiles/ai/copilot/hooks/notify.json (file)
 _link-ai-configs:
-	@# ~/.agents/skills -> dotfiles/ai/skills
-	$(Q)mkdir -p "$(HOME)/.agents"
-	$(Q)$(MAKE) _create-link \
-		SRC="$(AI_DIR)/skills" \
-		DEST="$(HOME)/.agents/skills" \
-		FORCE=$(FORCE)
-	@# ~/.codex/skills/<skill> -> dotfiles/ai/codex/skills/<skill>
-	$(Q)$(MAKE) _link-codex-skills FORCE=$(FORCE)
+	@# Remove symlinks from the pre-ai-plugins skill layout.
+	$(Q)$(MAKE) _cleanup-migrated-ai-skill-links
 ifeq ($(DETECTED_OS),windows)
 	@# ~/.codex/hooks.json -> dotfiles/ai/codex/windows/hooks.json
 	$(Q)mkdir -p "$(HOME)/.codex"
@@ -691,8 +651,6 @@ ifeq ($(DETECTED_OS),windows)
 		DEST="$(HOME)/.copilot/hooks/notify.json" \
 		FORCE=$(FORCE)
 endif
-	@# ~/.claude/skills/<skill> -> dotfiles/ai/skills/<skill>
-	$(Q)$(MAKE) _link-claude-skills FORCE=$(FORCE)
 	@# ~/.claude/settings.json, statusline-command.sh -> dotfiles/ai/claude/
 	$(Q)$(MAKE) _link-claude-configs FORCE=$(FORCE)
 
@@ -700,68 +658,31 @@ endif
 # Internal: Remove AI tool symlinks
 # -----------------------------------------------------------------------------
 _unlink-ai-configs:
-	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.agents/skills"
-	$(Q)$(MAKE) _unlink-codex-skills
+	$(Q)$(MAKE) _cleanup-migrated-ai-skill-links
 	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.codex/hooks.json"
 ifeq ($(DETECTED_OS),windows)
 	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.copilot/agents"
 	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.copilot/hooks/notify.json"
 endif
-	$(Q)$(MAKE) _unlink-claude-skills
 	$(Q)$(MAKE) _unlink-claude-configs
 
 # -----------------------------------------------------------------------------
-# Internal: Create Codex skill symlinks
+# Internal: Remove skill symlinks from the pre-ai-plugins layout
 # -----------------------------------------------------------------------------
-# Preserve ~/.codex/skills/.system and link custom skills individually.
-_link-codex-skills:
-	$(Q)mkdir -p "$(HOME)/.codex/skills"
-	$(Q)for skill_dir in "$(AI_DIR)/codex/skills"/*/; do \
-		[ -d "$$skill_dir" ] || continue; \
-		skill_name=$$(basename "$$skill_dir"); \
-		$(MAKE) _create-link \
-			SRC="$(AI_DIR)/codex/skills/$$skill_name" \
-			DEST="$(HOME)/.codex/skills/$$skill_name" \
-			FORCE=$(FORCE); \
-	done
-
-# -----------------------------------------------------------------------------
-# Internal: Remove Codex skill symlinks
-# -----------------------------------------------------------------------------
-_unlink-codex-skills:
-	$(Q)for target in "$(HOME)/.codex/skills"/*; do \
+# Only remove links whose recorded targets are inside the deleted skill paths.
+# This preserves .system, regular files/directories, and links managed elsewhere.
+_cleanup-migrated-ai-skill-links:
+	$(Q)for target in \
+		"$(HOME)/.agents/skills" \
+		"$(HOME)/.codex/skills"/* \
+		"$(HOME)/.claude/skills"/*; do \
 		[ -L "$$target" ] || continue; \
 		link_dest=$$(readlink "$$target"); \
 		case "$$link_dest" in \
-			"$(AI_DIR)/codex/skills/"*) \
+			"$(AI_DIR)/skills"|"$(AI_DIR)/skills/"*|"$(AI_DIR)/codex/skills/"*) \
 				$(MAKE) _remove-link DEST="$$target"; \
 				;; \
 		esac; \
-	done
-
-# -----------------------------------------------------------------------------
-# Internal: Create Claude skill symlinks
-# -----------------------------------------------------------------------------
-# Links each skill directory under dotfiles/ai/skills/ into ~/.claude/skills/
-_link-claude-skills:
-	$(Q)mkdir -p "$(HOME)/.claude/skills"
-	$(Q)for skill_dir in "$(AI_DIR)/skills"/*/; do \
-		[ -d "$$skill_dir" ] || continue; \
-		skill_name=$$(basename "$$skill_dir"); \
-		$(MAKE) _create-link \
-			SRC="$(AI_DIR)/skills/$$skill_name" \
-			DEST="$(HOME)/.claude/skills/$$skill_name" \
-			FORCE=$(FORCE); \
-	done
-
-# -----------------------------------------------------------------------------
-# Internal: Remove Claude skill symlinks
-# -----------------------------------------------------------------------------
-_unlink-claude-skills:
-	$(Q)for skill_dir in "$(AI_DIR)/skills"/*/; do \
-		[ -d "$$skill_dir" ] || continue; \
-		skill_name=$$(basename "$$skill_dir"); \
-		$(MAKE) _remove-link DEST="$(HOME)/.claude/skills/$$skill_name"; \
 	done
 
 # -----------------------------------------------------------------------------
