@@ -128,6 +128,7 @@ COLOR_CYAN := \033[36m
         _ensure-xdg-config _create-link _remove-link \
         _link-fish-files _unlink-fish-files \
         _link-karabiner-files _unlink-karabiner-files \
+        _cleanup-migrated-ai-skill-links \
         _link-ai-configs _unlink-ai-configs \
         _link-claude-configs _unlink-claude-configs
 
@@ -619,6 +620,8 @@ _unlink-karabiner-files:
 #   ~/.copilot/agents             -> dotfiles/ai/copilot/agents       (directory)
 #   ~/.copilot/hooks/notify.json  -> dotfiles/ai/copilot/hooks/notify.json (file)
 _link-ai-configs:
+	@# Remove symlinks from the pre-ai-plugins skill layout.
+	$(Q)$(MAKE) _cleanup-migrated-ai-skill-links
 ifeq ($(DETECTED_OS),windows)
 	@# ~/.codex/hooks.json -> dotfiles/ai/codex/windows/hooks.json
 	$(Q)mkdir -p "$(HOME)/.codex"
@@ -655,12 +658,32 @@ endif
 # Internal: Remove AI tool symlinks
 # -----------------------------------------------------------------------------
 _unlink-ai-configs:
+	$(Q)$(MAKE) _cleanup-migrated-ai-skill-links
 	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.codex/hooks.json"
 ifeq ($(DETECTED_OS),windows)
 	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.copilot/agents"
 	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.copilot/hooks/notify.json"
 endif
 	$(Q)$(MAKE) _unlink-claude-configs
+
+# -----------------------------------------------------------------------------
+# Internal: Remove skill symlinks from the pre-ai-plugins layout
+# -----------------------------------------------------------------------------
+# Only remove links whose recorded targets are inside the deleted skill paths.
+# This preserves .system, regular files/directories, and links managed elsewhere.
+_cleanup-migrated-ai-skill-links:
+	$(Q)for target in \
+		"$(HOME)/.agents/skills" \
+		"$(HOME)/.codex/skills"/* \
+		"$(HOME)/.claude/skills"/*; do \
+		[ -L "$$target" ] || continue; \
+		link_dest=$$(readlink "$$target"); \
+		case "$$link_dest" in \
+			"$(AI_DIR)/skills"|"$(AI_DIR)/skills/"*|"$(AI_DIR)/codex/skills/"*) \
+				$(MAKE) _remove-link DEST="$$target"; \
+				;; \
+		esac; \
+	done
 
 # -----------------------------------------------------------------------------
 # Internal: Create Claude config file symlinks
