@@ -24,8 +24,8 @@ jobs:
       issues: write
       pull-requests: read
     outputs:
-      result: ${{ steps.input.outputs.result }}
-      reason_code: ${{ steps.input.outputs.reason_code }}
+      result: ${{ steps.ai.outputs.result }}
+      reason_code: ${{ steps.input.outputs.reason_code || steps.estimate.outputs.reason_code }}
       artifact_name: auto-pr-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - name: Checkout default branch
@@ -50,17 +50,48 @@ jobs:
         run: node .github/scripts/auto-pr-publish.mjs comment
 
       - name: Comment input validation failure
-        if: steps.input.outcome == 'failure'
+        if: failure() && steps.input.outcome == 'failure'
         env:
           AUTO_PR_REASON: internal-error
           GITHUB_TOKEN: ${{ github.token }}
         run: node .github/scripts/auto-pr-publish.mjs comment
 
-      - name: Generate complete files with Sakura AI Engine
-        id: ai
+      - name: Estimate change plan before generation
+        id: estimate
         if: steps.input.outcome == 'success' && steps.input.outputs.result == 'ready'
         env:
           AUTO_PR_INPUT_PATH: ${{ runner.temp }}/auto-pr-input.json
+          AUTO_PR_PLAN_PATH: ${{ runner.temp }}/auto-pr-plan.json
+          SAKURA_AI_API_KEY: ${{ secrets.SAKURA_AI_API_KEY }}
+          SAKURA_AI_ENDPOINT: https://api.ai.sakura.ad.jp/v1
+          SAKURA_AI_MODEL: gpt-oss-120b
+        run: node .github/scripts/auto-pr-estimate.mjs
+
+      - name: Comment preflight estimate gate
+        if: steps.estimate.outcome == 'success' && steps.estimate.outputs.result != 'proceed'
+        env:
+          AUTO_PR_REASON: ${{ steps.estimate.outputs.reason_code }}
+          AUTO_PR_PLAN_PATH: ${{ runner.temp }}/auto-pr-plan.json
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node .github/scripts/auto-pr-publish.mjs comment
+
+      - name: Comment preflight estimate failure
+        if: failure() && steps.estimate.outcome == 'failure'
+        env:
+          AUTO_PR_REASON: estimate-failed
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node .github/scripts/auto-pr-publish.mjs comment
+
+      - name: Generate complete files with Sakura AI Engine
+        id: ai
+        if: >-
+          steps.input.outcome == 'success' &&
+          steps.input.outputs.result == 'ready' &&
+          steps.estimate.outcome == 'success' &&
+          steps.estimate.outputs.result == 'proceed'
+        env:
+          AUTO_PR_INPUT_PATH: ${{ runner.temp }}/auto-pr-input.json
+          AUTO_PR_PLAN_PATH: ${{ runner.temp }}/auto-pr-plan.json
           AUTO_PR_OUTPUT_PATH: ${{ runner.temp }}/auto-pr-output.json
           SAKURA_AI_API_KEY: ${{ secrets.SAKURA_AI_API_KEY }}
           SAKURA_AI_ENDPOINT: https://api.ai.sakura.ad.jp/v1
@@ -68,14 +99,14 @@ jobs:
         run: node .github/scripts/auto-pr-ai.mjs
 
       - name: Comment AI failure
-        if: steps.ai.outcome == 'failure'
+        if: failure() && steps.ai.outcome == 'failure'
         env:
           AUTO_PR_REASON: ai-failed
           GITHUB_TOKEN: ${{ github.token }}
         run: node .github/scripts/auto-pr-publish.mjs comment
 
       - name: Upload validated artifact
-        if: steps.input.outputs.result == 'ready'
+        if: steps.ai.outputs.result == 'ready'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: auto-pr-${{ github.run_id }}-${{ github.run_attempt }}

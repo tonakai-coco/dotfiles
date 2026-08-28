@@ -1,8 +1,9 @@
 # ADR-0001: Issue自動PRの対象範囲と変更量判定
 
-- ステータス: Accepted（採用）
+- ステータス: Superseded（ADR-0002により置き換え）
 - 決定日: 2026-08-26
 - 対象: GitHub ActionsによるIssue起点の自動Pull Request
+- 後継: [ADR-0002](0002-issue-auto-pr-preflight-estimate.md)
 
 ## 背景
 

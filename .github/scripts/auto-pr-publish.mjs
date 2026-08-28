@@ -6,6 +6,7 @@ import {
   createGithubPullRequest,
   findExistingWork,
   formatChangeSummary,
+  formatEstimateSummary,
   getCachedPaths,
   getChangeMetrics,
   getGithubToken,
@@ -15,6 +16,7 @@ import {
   readJsonFile,
   runGit,
   validateArtifact,
+  validateEstimateDocument,
   writeTrackedTextFile,
   writeGithubOutput,
 } from "./auto-pr-common.mjs";
@@ -41,6 +43,26 @@ async function readArtifact() {
     throw new AutoPrError("artifact-environment-missing");
   }
   return validateArtifact(await readJsonFile(artifactPath), getRepositoryRoot());
+}
+
+async function readEstimateForEvent(context) {
+  const planPath = process.env.AUTO_PR_PLAN_PATH;
+  if (!planPath) {
+    throw new AutoPrError("estimate-environment-missing");
+  }
+
+  const estimateDocument = validateEstimateDocument(
+    await readJsonFile(planPath),
+    getRepositoryRoot(),
+  );
+  if (
+    estimateDocument.repository !== context.repository ||
+    estimateDocument.issueNumber !== context.issueNumber ||
+    estimateDocument.defaultBranch !== context.defaultBranch
+  ) {
+    throw new AutoPrError("estimate-event-mismatch");
+  }
+  return estimateDocument.estimate;
 }
 
 function assertArtifactMatchesEvent(artifact, context) {
@@ -129,7 +151,7 @@ async function assessArtifact(artifact) {
 
 function buildPullRequestBody(context, artifact, metrics, assessment) {
   const paths = artifact.targetPaths.map((targetPath) => `- \`${targetPath.replaceAll("`", "\\`")}\``);
-  return [
+  let body = [
     `Closes #${context.issueNumber}`,
     "",
     "## 対象パス",
@@ -142,6 +164,10 @@ function buildPullRequestBody(context, artifact, metrics, assessment) {
     "- Secretなしの検証Jobで `make check` と `make status` を実行",
     "- Linux向けリンク作成・確認・解除を実行",
   ].join("\n");
+  if (artifact.estimate) {
+    body += `\n\n## 事前見積もり\n${formatEstimateSummary(artifact.estimate)}`;
+  }
+  return body;
 }
 
 function getPushEnvironment(token) {
@@ -191,7 +217,12 @@ async function publishArtifact(artifact) {
   }
 
   if (isDryRun()) {
-    await postComment("dry-run", { paths: changedPaths, metrics, assessment });
+    await postComment("dry-run", {
+      paths: changedPaths,
+      metrics,
+      assessment,
+      estimate: artifact.estimate,
+    });
     return;
   }
 
@@ -235,6 +266,7 @@ async function publishArtifact(artifact) {
     paths: changedPaths,
     metrics,
     assessment,
+    estimate: artifact.estimate,
     pullRequestUrl: pullRequest.htmlUrl,
   });
 }
@@ -246,7 +278,12 @@ async function main() {
     if (typeof reason !== "string" || reason.length === 0) {
       throw new AutoPrError("comment-reason-missing");
     }
-    await postComment(reason);
+    const context = await readEventContext();
+    const details =
+      reason === "preflight-too-large" || reason === "preflight-review-required"
+        ? { estimate: await readEstimateForEvent(context) }
+        : {};
+    await postComment(reason, details);
     return;
   }
 

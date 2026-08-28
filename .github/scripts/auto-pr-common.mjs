@@ -10,6 +10,12 @@ export const MAX_SOURCE_FILE_BYTES = 128 * 1024;
 export const MAX_SOURCE_TOTAL_BYTES = 512 * 1024;
 export const MAX_GENERATED_FILE_BYTES = 256 * 1024;
 export const MAX_GENERATED_TOTAL_BYTES = 512 * 1024;
+export const MAX_ESTIMATE_PAYLOAD_BYTES = 64 * 1024;
+export const MAX_ESTIMATE_SUMMARY_CHARS = 1_000;
+export const MAX_ESTIMATE_REASON_CHARS = 500;
+export const MAX_ESTIMATE_CHANGED_LINES = 1_000_000;
+export const MAX_ESTIMATE_CONTEXT_BYTES = 96 * 1024;
+export const MAX_ESTIMATE_PREVIEW_CHARS = 12_000;
 // These are conservative change-budget guardrails, not human-hour estimates.
 export const CHANGE_SIZE_POLICY = Object.freeze({
   review: Object.freeze({
@@ -334,6 +340,247 @@ export function classifyChangeSize(metrics) {
   return { level: "normal", reasons: [] };
 }
 
+function assertEstimateText(value, code, maximum) {
+  if (
+    typeof value !== "string" ||
+    value.trim().length === 0 ||
+    value.length > maximum ||
+    PATH_CONTROL_CHARACTERS.test(value)
+  ) {
+    throw new AutoPrError(code);
+  }
+
+  return value.trim();
+}
+
+function calculateEstimateScore(metrics) {
+  const ratios = [
+    metrics.changedLines / CHANGE_SIZE_POLICY.split.changedLines,
+    metrics.changedFiles / CHANGE_SIZE_POLICY.split.changedFiles,
+    metrics.changeAreas / CHANGE_SIZE_POLICY.split.changeAreas,
+    metrics.maxFileChangedLines / CHANGE_SIZE_POLICY.split.singleFileChangedLines,
+  ];
+  return Number(Math.max(...ratios).toFixed(2));
+}
+
+export function validateChangeEstimate(payload, targetPaths, repositoryRoot = getRepositoryRoot()) {
+  const expectedPaths = assertSafeTargetPaths(targetPaths, repositoryRoot);
+  if (!isRecord(payload)) {
+    throw new AutoPrError("estimate-invalid");
+  }
+
+  let payloadBytes;
+  try {
+    payloadBytes = Buffer.byteLength(JSON.stringify(payload), "utf8");
+  } catch {
+    throw new AutoPrError("estimate-invalid");
+  }
+  if (payloadBytes > MAX_ESTIMATE_PAYLOAD_BYTES) {
+    throw new AutoPrError("estimate-too-large");
+  }
+
+  const summary = assertEstimateText(
+    payload.summary,
+    "estimate-summary-invalid",
+    MAX_ESTIMATE_SUMMARY_CHARS,
+  );
+  if (!["high", "medium", "low"].includes(payload.confidence)) {
+    throw new AutoPrError("estimate-confidence-invalid");
+  }
+  if (!Array.isArray(payload.plannedChanges) || payload.plannedChanges.length === 0) {
+    throw new AutoPrError("estimate-plan-empty");
+  }
+
+  const expected = new Set(expectedPaths);
+  const seen = new Set();
+  const plannedChanges = payload.plannedChanges.map((change) => {
+    if (!isRecord(change) || typeof change.path !== "string") {
+      throw new AutoPrError("estimate-invalid-change");
+    }
+    if (!validateRepositoryPath(change.path, repositoryRoot).ok || !expected.has(change.path)) {
+      throw new AutoPrError("estimate-unexpected-path");
+    }
+    if (seen.has(change.path)) {
+      throw new AutoPrError("estimate-duplicate-path");
+    }
+    seen.add(change.path);
+
+    const reason = assertEstimateText(
+      change.reason,
+      "estimate-reason-invalid",
+      MAX_ESTIMATE_REASON_CHARS,
+    );
+    if (
+      !Number.isSafeInteger(change.estimatedChangedLinesMax) ||
+      change.estimatedChangedLinesMax <= 0 ||
+      change.estimatedChangedLinesMax > MAX_ESTIMATE_CHANGED_LINES
+    ) {
+      throw new AutoPrError("estimate-lines-invalid");
+    }
+
+    return {
+      path: change.path,
+      reason,
+      estimatedChangedLinesMax: change.estimatedChangedLinesMax,
+    };
+  });
+
+  const changeAreas = new Set(plannedChanges.map((change) => getChangeArea(change.path)));
+  const metrics = {
+    changedFiles: plannedChanges.length,
+    changedLines: plannedChanges.reduce(
+      (total, change) => total + change.estimatedChangedLinesMax,
+      0,
+    ),
+    changeAreas: changeAreas.size,
+    maxFileChangedLines: plannedChanges.reduce(
+      (maximum, change) => Math.max(maximum, change.estimatedChangedLinesMax),
+      0,
+    ),
+  };
+
+  assertChangeMetric("changedFiles", metrics.changedFiles);
+  assertChangeMetric("changedLines", metrics.changedLines);
+  assertChangeMetric("changeAreas", metrics.changeAreas);
+  assertChangeMetric("maxFileChangedLines", metrics.maxFileChangedLines);
+
+  const reviewReasons = [];
+  if (metrics.changedLines >= CHANGE_SIZE_POLICY.review.changedLines) {
+    reviewReasons.push("changed-lines");
+  }
+  if (metrics.changedFiles >= CHANGE_SIZE_POLICY.review.changedFiles) {
+    reviewReasons.push("changed-files");
+  }
+  if (metrics.changeAreas >= CHANGE_SIZE_POLICY.review.changeAreas) {
+    reviewReasons.push("change-areas");
+  }
+
+  const splitReasons = [];
+  if (metrics.changedLines >= CHANGE_SIZE_POLICY.split.changedLines) {
+    splitReasons.push("changed-lines");
+  }
+  if (metrics.changedFiles >= CHANGE_SIZE_POLICY.split.changedFiles) {
+    splitReasons.push("changed-files");
+  }
+  if (metrics.changeAreas >= CHANGE_SIZE_POLICY.split.changeAreas) {
+    splitReasons.push("change-areas");
+  }
+  if (metrics.maxFileChangedLines >= CHANGE_SIZE_POLICY.split.singleFileChangedLines) {
+    splitReasons.push("single-file-change");
+  }
+
+  const estimatedLevel = splitReasons.length > 0
+    ? "split"
+    : reviewReasons.length > 0
+      ? "review"
+      : "normal";
+  const level = splitReasons.length > 0
+    ? "split"
+    : payload.confidence === "low"
+      ? "manual-review"
+      : "proceed";
+  const reasons = splitReasons.length > 0
+    ? splitReasons
+    : payload.confidence === "low"
+      ? ["low-confidence"]
+      : reviewReasons;
+
+  return {
+    summary,
+    confidence: payload.confidence,
+    plannedChanges,
+    metrics,
+    assessment: {
+      level,
+      estimatedLevel,
+      reasons,
+      sizeScore: calculateEstimateScore(metrics),
+    },
+  };
+}
+
+export function validateEstimateDocument(payload, repositoryRoot = getRepositoryRoot()) {
+  if (
+    !isRecord(payload) ||
+    payload.version !== 1 ||
+    typeof payload.repository !== "string" ||
+    !Number.isSafeInteger(payload.issueNumber) ||
+    payload.issueNumber <= 0 ||
+    typeof payload.defaultBranch !== "string" ||
+    payload.defaultBranch.length === 0 ||
+    PATH_CONTROL_CHARACTERS.test(payload.defaultBranch) ||
+    !Array.isArray(payload.targetPaths) ||
+    !isRecord(payload.estimate)
+  ) {
+    throw new AutoPrError("invalid-estimate-document");
+  }
+
+  validateRepositoryName(payload.repository);
+  const targetPaths = assertSafeTargetPaths(payload.targetPaths, repositoryRoot);
+  const estimate = validateChangeEstimate(payload.estimate, targetPaths, repositoryRoot);
+  return {
+    version: 1,
+    repository: payload.repository,
+    issueNumber: payload.issueNumber,
+    defaultBranch: payload.defaultBranch,
+    targetPaths,
+    estimate,
+  };
+}
+
+const ESTIMATE_LEVEL_TEXT = Object.freeze({
+  proceed: "生成可",
+  split: "分割依頼",
+  "manual-review": "人手確認",
+});
+
+const ESTIMATE_SIZE_TEXT = Object.freeze({
+  normal: "通常",
+  review: "要確認",
+  split: "分割依頼",
+});
+
+const ESTIMATE_CONFIDENCE_TEXT = Object.freeze({
+  high: "高",
+  medium: "中",
+  low: "低",
+});
+
+export function formatEstimateSummary(estimate) {
+  if (
+    !isRecord(estimate) ||
+    !isRecord(estimate.metrics) ||
+    !isRecord(estimate.assessment) ||
+    !Array.isArray(estimate.plannedChanges) ||
+    typeof estimate.confidence !== "string"
+  ) {
+    throw new AutoPrError("estimate-invalid");
+  }
+
+  const { metrics, assessment } = estimate;
+  for (const name of ["changedFiles", "changedLines", "changeAreas", "maxFileChangedLines"]) {
+    assertChangeMetric(name, metrics[name]);
+  }
+  if (
+    !ESTIMATE_LEVEL_TEXT[assessment.level] ||
+    !ESTIMATE_SIZE_TEXT[assessment.estimatedLevel] ||
+    !Number.isFinite(assessment.sizeScore)
+  ) {
+    throw new AutoPrError("estimate-invalid");
+  }
+  if (!ESTIMATE_CONFIDENCE_TEXT[estimate.confidence]) {
+    throw new AutoPrError("estimate-invalid");
+  }
+
+  return [
+    `事前見積もり: 最大${metrics.changedFiles}ファイル、最大${metrics.changedLines}行、${metrics.changeAreas}領域、1ファイル最大${metrics.maxFileChangedLines}行`,
+    `見積もりスコア: ${assessment.sizeScore}`,
+    `見積もり確度: ${ESTIMATE_CONFIDENCE_TEXT[estimate.confidence]}`,
+    `見積もり規模: ${ESTIMATE_SIZE_TEXT[assessment.estimatedLevel]}`,
+    `見積もり判定: ${ESTIMATE_LEVEL_TEXT[assessment.level]}`,
+  ].join("\n");
+}
+
 function resolveRepositoryPath(repositoryPath, repositoryRoot = getRepositoryRoot()) {
   const validation = validateRepositoryPath(repositoryPath, repositoryRoot);
   if (!validation.ok) {
@@ -456,6 +703,50 @@ export async function readTargetFilesWithinBudget(targetPaths, repositoryRoot = 
   return { files, totalBytes };
 }
 
+function createEstimatePreview(content) {
+  if (content.length <= MAX_ESTIMATE_PREVIEW_CHARS) {
+    return content;
+  }
+
+  const headLength = Math.floor(MAX_ESTIMATE_PREVIEW_CHARS * 0.55);
+  const tailLength = Math.floor(MAX_ESTIMATE_PREVIEW_CHARS * 0.35);
+  return [
+    content.slice(0, headLength),
+    "...（省略）...",
+    content.slice(-tailLength),
+  ].join("\n");
+}
+
+export async function readTargetFilesForEstimate(
+  targetPaths,
+  repositoryRoot = getRepositoryRoot(),
+) {
+  const { files, totalBytes } = await readTargetFilesWithinBudget(targetPaths, repositoryRoot);
+  const summaries = [];
+
+  for (const file of files) {
+    const summary = {
+      path: file.path,
+      bytes: Buffer.byteLength(file.content, "utf8"),
+      lines: file.content.length === 0 ? 0 : file.content.split("\n").length,
+      preview: createEstimatePreview(file.content),
+    };
+    const summaryBytes = Buffer.byteLength(JSON.stringify(summary), "utf8");
+    const currentBytes = Buffer.byteLength(JSON.stringify(summaries), "utf8");
+
+    if (currentBytes + summaryBytes > MAX_ESTIMATE_CONTEXT_BYTES) {
+      summary.preview = "（コンテキスト上限のため内容を省略）";
+    }
+    summaries.push(summary);
+  }
+
+  if (Buffer.byteLength(JSON.stringify(summaries), "utf8") > MAX_ESTIMATE_CONTEXT_BYTES) {
+    throw new AutoPrError("estimate-context-too-large");
+  }
+
+  return { files: summaries, totalBytes };
+}
+
 export async function writeTrackedTextFile(repositoryPath, content, repositoryRoot = getRepositoryRoot()) {
   if (typeof content !== "string" || content.length === 0 || content.includes("\0")) {
     throw new AutoPrError("empty-or-invalid-content");
@@ -553,6 +844,9 @@ export function validateArtifact(payload, repositoryRoot = getRepositoryRoot()) 
 
   const targetPaths = assertSafeTargetPaths(payload.targetPaths, repositoryRoot);
   const files = validateGeneratedFiles(payload, targetPaths, repositoryRoot);
+  const estimate = payload.estimate === undefined
+    ? undefined
+    : validateChangeEstimate(payload.estimate, targetPaths, repositoryRoot);
   return {
     version: 1,
     repository: payload.repository,
@@ -560,6 +854,7 @@ export function validateArtifact(payload, repositoryRoot = getRepositoryRoot()) 
     defaultBranch: payload.defaultBranch,
     targetPaths,
     files,
+    ...(estimate ? { estimate } : {}),
   };
 }
 
@@ -855,6 +1150,9 @@ const COMMENT_TEXT = Object.freeze({
   "ai-failed": "Sakura AI Engineの生成または応答検証に失敗したため、自動PRを停止しました。",
   "validation-failed": "Secretなしの検証に失敗したため、自動PRを停止しました。",
   "publish-failed": "検証済み成果物の公開に失敗しました。自動PRを停止しました。",
+  "estimate-failed": "生成前の変更計画を作成または検証できなかったため、自動PRを停止しました。",
+  "preflight-too-large": "生成前の変更量見積もりが自動PRの変更予算を超えたため、完成ファイルを生成せず停止しました。対象を1つの目的、受入条件、変更領域に分割して再依頼してください。",
+  "preflight-review-required": "生成前の変更量見積もりの確度が低いため、完成ファイルを生成せず人手確認を依頼します。対象範囲と変更方針を具体化して再依頼してください。",
   "change-too-large": "生成された変更量が自動PRの変更予算を超えたため、自動PRを停止しました。対象を1つの目的・受入条件・変更領域に分割して再依頼してください。",
   "dry-run": "生成物とSecretなしの検証は完了しました。現在はdry-runのため、branch・push・commit・Pull Request作成は実行していません。",
   "no-change": "修正前後に差分がないため、commitとPull Request作成は実行していません。",
@@ -899,9 +1197,27 @@ export function formatChangeSummary(metrics, assessment) {
   return lines.join("\n");
 }
 
+function formatEstimatePlan(estimate) {
+  const changes = estimate.plannedChanges.slice(0, 20).map(
+    (change) =>
+      `- \`${escapeInlineCode(change.path)}\`: ${escapeInlineCode(change.reason)}（最大${change.estimatedChangedLinesMax}行）`,
+  );
+  if (estimate.plannedChanges.length > 20) {
+    changes.push(`- 残り${estimate.plannedChanges.length - 20}件は省略`);
+  }
+  return changes.join("\n");
+}
+
 export function createComment(reason, details = {}) {
   const text = COMMENT_TEXT[reason] || COMMENT_TEXT["internal-error"];
   let body = `<!-- sakura-auto-pr:${reason} -->\n${text}`;
+
+  if (
+    (reason === "preflight-too-large" || reason === "preflight-review-required") &&
+    isRecord(details.estimate)
+  ) {
+    body += `\n\n${details.estimate.summary}\n\n${formatEstimateSummary(details.estimate)}\n\n変更計画:\n${formatEstimatePlan(details.estimate)}`;
+  }
 
   if ((reason === "dry-run" || reason === "published") && Array.isArray(details.paths)) {
     body += `\n\n対象パス:\n${formatPaths(details.paths)}`;
@@ -912,6 +1228,12 @@ export function createComment(reason, details = {}) {
     isRecord(details.assessment)
   ) {
     body += `\n\n${formatChangeSummary(details.metrics, details.assessment)}`;
+  }
+  if (
+    (reason === "dry-run" || reason === "published") &&
+    isRecord(details.estimate)
+  ) {
+    body += `\n\n${formatEstimateSummary(details.estimate)}`;
   }
   if (reason === "published" && typeof details.pullRequestUrl === "string") {
     body += `\n\nPull Request: ${details.pullRequestUrl}`;

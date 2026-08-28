@@ -1,17 +1,18 @@
 import {
   AutoPrError,
-  SAKURA_AI_DEFAULT_ENDPOINT,
-  SAKURA_AI_DEFAULT_MODEL,
   assertSafeTargetPaths,
   getRepositoryRoot,
   isRecord,
   parseStrictJsonContent,
   readJsonFile,
   readTargetFilesWithinBudget,
+  validateEstimateDocument,
   validateGeneratedFiles,
   validateRepositoryName,
   writePrivateJson,
+  writeGithubOutput,
 } from "./auto-pr-common.mjs";
+import { requestSakuraCompletion } from "./auto-pr-sakura.mjs";
 
 function getInputPath() {
   return process.env.AUTO_PR_INPUT_PATH;
@@ -19,6 +20,10 @@ function getInputPath() {
 
 function getOutputPath() {
   return process.env.AUTO_PR_OUTPUT_PATH;
+}
+
+function getPlanPath() {
+  return process.env.AUTO_PR_PLAN_PATH;
 }
 
 function validateInputDocument(input, repositoryRoot) {
@@ -46,31 +51,7 @@ function validateInputDocument(input, repositoryRoot) {
   return input;
 }
 
-function getApiEndpoint() {
-  const configuredEndpoint = process.env.SAKURA_AI_ENDPOINT || SAKURA_AI_DEFAULT_ENDPOINT;
-  if (configuredEndpoint.replace(/\/+$/u, "") !== SAKURA_AI_DEFAULT_ENDPOINT) {
-    throw new AutoPrError("invalid-sakura-endpoint");
-  }
-  return configuredEndpoint.replace(/\/+$/u, "");
-}
-
-function getApiModel() {
-  const configuredModel = process.env.SAKURA_AI_MODEL || SAKURA_AI_DEFAULT_MODEL;
-  if (configuredModel !== SAKURA_AI_DEFAULT_MODEL) {
-    throw new AutoPrError("invalid-sakura-model");
-  }
-  return configuredModel;
-}
-
-function getApiKey() {
-  const apiKey = process.env.SAKURA_AI_API_KEY;
-  if (typeof apiKey !== "string" || apiKey.length === 0) {
-    throw new AutoPrError("sakura-api-key-missing");
-  }
-  return apiKey;
-}
-
-function buildMessages(input, files) {
+function buildMessages(input, files, estimate) {
   const system = [
     "You are a code-change generator for a trusted repository.",
     "Return exactly one JSON object with this shape: {\"files\":[{\"path\":\"...\",\"content\":\"...\"}]}.",
@@ -90,6 +71,7 @@ function buildMessages(input, files) {
       targetPaths: input.targetPaths,
       repository: input.repository,
       defaultBranch: input.defaultBranch,
+      preflightEstimate: estimate,
     },
     files,
   });
@@ -100,61 +82,41 @@ function buildMessages(input, files) {
   ];
 }
 
-async function requestCompletion({ apiKey, messages }) {
-  const response = await fetch(`${getApiEndpoint()}/chat/completions`, {
-    method: "POST",
-    headers: {
-      accept: "application/json",
-      authorization: `Bearer ${apiKey}`,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      model: getApiModel(),
-      messages,
-      max_tokens: 20000,
-      temperature: 0,
-      stream: false,
-    }),
-    signal: AbortSignal.timeout(120000),
-  });
-
-  if (!response.ok) {
-    throw new AutoPrError("sakura-request-failed");
+function assertEstimateMatchesInput(estimateDocument, input) {
+  if (
+    estimateDocument.repository !== input.repository ||
+    estimateDocument.issueNumber !== input.issueNumber ||
+    estimateDocument.defaultBranch !== input.defaultBranch ||
+    estimateDocument.targetPaths.length !== input.targetPaths.length ||
+    estimateDocument.targetPaths.some((targetPath, index) => targetPath !== input.targetPaths[index])
+  ) {
+    throw new AutoPrError("estimate-input-mismatch");
   }
-
-  let payload;
-  try {
-    payload = await response.json();
-  } catch {
-    throw new AutoPrError("sakura-response-invalid");
+  if (estimateDocument.estimate.assessment.level !== "proceed") {
+    throw new AutoPrError("estimate-not-approved");
   }
-
-  if (!isRecord(payload) || !Array.isArray(payload.choices) || payload.choices.length === 0) {
-    throw new AutoPrError("sakura-response-invalid");
-  }
-
-  const firstChoice = payload.choices[0];
-  if (!isRecord(firstChoice) || !isRecord(firstChoice.message) || typeof firstChoice.message.content !== "string") {
-    throw new AutoPrError("sakura-response-invalid");
-  }
-
-  return firstChoice.message.content;
 }
 
 async function main() {
   const inputPath = getInputPath();
   const outputPath = getOutputPath();
-  if (!inputPath || !outputPath) {
+  const planPath = getPlanPath();
+  if (!inputPath || !outputPath || !planPath) {
     throw new AutoPrError("ai-environment-missing");
   }
 
   const repositoryRoot = getRepositoryRoot();
   const input = validateInputDocument(await readJsonFile(inputPath), repositoryRoot);
+  const estimateDocument = validateEstimateDocument(
+    await readJsonFile(planPath),
+    repositoryRoot,
+  );
+  assertEstimateMatchesInput(estimateDocument, input);
   const { files } = await readTargetFilesWithinBudget(input.targetPaths, repositoryRoot);
 
-  const content = await requestCompletion({
-    apiKey: getApiKey(),
-    messages: buildMessages(input, files),
+  const content = await requestSakuraCompletion({
+    messages: buildMessages(input, files, estimateDocument.estimate),
+    maxTokens: 20000,
   });
   const responseJson = parseStrictJsonContent(content);
   const generatedFiles = validateGeneratedFiles(responseJson, input.targetPaths, repositoryRoot);
@@ -166,7 +128,9 @@ async function main() {
     defaultBranch: input.defaultBranch,
     targetPaths: input.targetPaths,
     files: generatedFiles,
+    estimate: estimateDocument.estimate,
   });
+  await writeGithubOutput({ result: "ready" });
   console.log("Sakura AI output validated.");
 }
 

@@ -7,6 +7,8 @@ import { tmpdir } from "node:os";
 
 import {
   CHANGE_SIZE_POLICY,
+  MAX_ESTIMATE_CONTEXT_BYTES,
+  MAX_ESTIMATE_PREVIEW_CHARS,
   MAX_GENERATED_FILE_BYTES,
   MAX_GENERATED_TOTAL_BYTES,
   MAX_TARGET_PATH_SPEC_BYTES,
@@ -14,11 +16,15 @@ import {
   classifyChangeSize,
   createComment,
   formatChangeSummary,
+  formatEstimateSummary,
   getChangeMetrics,
   readTargetFilesWithinBudget,
+  readTargetFilesForEstimate,
   parseStrictJsonContent,
   parseGitNumstat,
   parseTargetPaths,
+  validateChangeEstimate,
+  validateEstimateDocument,
   validateGeneratedFiles,
 } from "./auto-pr-common.mjs";
 
@@ -173,6 +179,213 @@ test("rejects generated files whose total content exceeds the budget", () => {
       ),
     /ai-total-too-large/,
   );
+});
+
+test("validates a preflight plan and derives conservative estimate metrics", () => {
+  const estimate = validateChangeEstimate(
+    {
+      summary: "設定と検証手順を更新する",
+      confidence: "medium",
+      plannedChanges: [
+        {
+          path: "config/nvim/init.lua",
+          reason: "起動時設定を更新する",
+          estimatedChangedLinesMax: 120,
+        },
+        {
+          path: "Makefile",
+          reason: "検証用ターゲットを調整する",
+          estimatedChangedLinesMax: 80,
+        },
+      ],
+    },
+    ["config/nvim/init.lua", "Makefile"],
+  );
+
+  assert.deepEqual(estimate.metrics, {
+    changedFiles: 2,
+    changedLines: 200,
+    changeAreas: 2,
+    maxFileChangedLines: 120,
+  });
+  assert.deepEqual(estimate.assessment, {
+    level: "proceed",
+    estimatedLevel: "review",
+    reasons: ["change-areas"],
+    sizeScore: 0.67,
+  });
+});
+
+test("stops before generation when the preflight upper estimate reaches the split budget", () => {
+  const estimate = validateChangeEstimate(
+    {
+      summary: "大規模な設定移行を行う",
+      confidence: "high",
+      plannedChanges: [
+        {
+          path: "Makefile",
+          reason: "多数のターゲットを移行する",
+          estimatedChangedLinesMax: 800,
+        },
+      ],
+    },
+    ["Makefile"],
+  );
+
+  assert.equal(estimate.assessment.level, "split");
+  assert.equal(estimate.assessment.estimatedLevel, "split");
+  assert.deepEqual(estimate.assessment.reasons, ["changed-lines", "single-file-change"]);
+  assert.equal(estimate.assessment.sizeScore, 2);
+});
+
+test("requires manual review when the preflight estimate has low confidence", () => {
+  const estimate = validateChangeEstimate(
+    {
+      summary: "対象範囲の依存関係を確認できない",
+      confidence: "low",
+      plannedChanges: [
+        {
+          path: "Makefile",
+          reason: "依存関係を調査してから変更する",
+          estimatedChangedLinesMax: 40,
+        },
+      ],
+    },
+    ["Makefile"],
+  );
+
+  assert.equal(estimate.assessment.level, "manual-review");
+  assert.equal(estimate.assessment.estimatedLevel, "normal");
+  assert.deepEqual(estimate.assessment.reasons, ["low-confidence"]);
+});
+
+test("rejects a preflight plan that contains an unrequested path", () => {
+  assert.throws(
+    () =>
+      validateChangeEstimate(
+        {
+          summary: "対象外のファイルも変更する",
+          confidence: "high",
+          plannedChanges: [
+            {
+              path: "other.txt",
+              reason: "対象外の変更",
+              estimatedChangedLinesMax: 10,
+            },
+          ],
+        },
+        ["Makefile"],
+      ),
+    /estimate-unexpected-path/,
+  );
+});
+
+test("formats a bounded preflight estimate summary", () => {
+  const estimate = validateChangeEstimate(
+    {
+      summary: "設定と検証手順を更新する",
+      confidence: "medium",
+      plannedChanges: [
+        {
+          path: "config/nvim/init.lua",
+          reason: "起動時設定を更新する",
+          estimatedChangedLinesMax: 120,
+        },
+        {
+          path: "Makefile",
+          reason: "検証用ターゲットを調整する",
+          estimatedChangedLinesMax: 80,
+        },
+      ],
+    },
+    ["config/nvim/init.lua", "Makefile"],
+  );
+
+  assert.match(
+    formatEstimateSummary(estimate),
+    /事前見積もり: 最大2ファイル、最大200行、2領域、1ファイル最大120行/u,
+  );
+  assert.match(formatEstimateSummary(estimate), /見積もりスコア: 0\.67/u);
+  assert.match(formatEstimateSummary(estimate), /見積もり規模: 要確認/u);
+  assert.match(formatEstimateSummary(estimate), /見積もり判定: 生成可/u);
+});
+
+test("formats a preflight split comment with the plan and without generated contents", () => {
+  const estimate = validateChangeEstimate(
+    {
+      summary: "大規模な設定移行を行う",
+      confidence: "high",
+      plannedChanges: [
+        {
+          path: "Makefile",
+          reason: "多数のターゲットを移行する",
+          estimatedChangedLinesMax: 800,
+        },
+      ],
+    },
+    ["Makefile"],
+  );
+
+  const comment = createComment("preflight-too-large", { estimate });
+  assert.match(comment, /完成ファイルを生成せず停止/u);
+  assert.match(comment, /Makefile/u);
+  assert.match(comment, /最大800行/u);
+  assert.doesNotMatch(comment, /source code|```/u);
+});
+
+test("validates an estimate document before passing it between workflow jobs", () => {
+  const document = validateEstimateDocument({
+    version: 1,
+    repository: "tonakai-coco/dotfiles",
+    issueNumber: 10,
+    defaultBranch: "main",
+    targetPaths: ["Makefile"],
+    estimate: {
+      summary: "検証用ターゲットを更新する",
+      confidence: "high",
+      plannedChanges: [
+        {
+          path: "Makefile",
+          reason: "検証用ターゲットを更新する",
+          estimatedChangedLinesMax: 20,
+        },
+      ],
+    },
+  });
+
+  assert.equal(document.estimate.assessment.level, "proceed");
+  assert.equal(document.estimate.metrics.changedLines, 20);
+});
+
+test("builds bounded file context for a preflight estimate", async (t) => {
+  const repositoryRoot = await mkdtemp(path.join(tmpdir(), "auto-pr-estimate-context-"));
+  t.after(async () => {
+    await rm(repositoryRoot, { recursive: true, force: true });
+  });
+
+  const content = `${"line\n".repeat(MAX_ESTIMATE_PREVIEW_CHARS)}tail\n`;
+  await writeFile(path.join(repositoryRoot, "target.txt"), content, "utf8");
+  const runGit = (args) => {
+    const result = spawnSync("git", args, {
+      cwd: repositoryRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    assert.equal(result.status, 0, result.stderr);
+  };
+  runGit(["init", "--quiet"]);
+  runGit(["config", "user.name", "test"]);
+  runGit(["config", "user.email", "test@example.invalid"]);
+  runGit(["add", "--", "target.txt"]);
+  runGit(["commit", "--quiet", "--message", "initial"]);
+
+  const result = await readTargetFilesForEstimate(["target.txt"], repositoryRoot);
+  assert.equal(result.totalBytes, Buffer.byteLength(content, "utf8"));
+  assert.equal(result.files[0].path, "target.txt");
+  assert.equal(result.files[0].bytes, Buffer.byteLength(content, "utf8"));
+  assert.equal(result.files[0].lines, content.split("\n").length);
+  assert.match(result.files[0].preview, /省略/u);
+  assert.ok(Buffer.byteLength(JSON.stringify(result.files), "utf8") <= MAX_ESTIMATE_CONTEXT_BYTES);
 });
 
 test("parses git numstat into change metrics", () => {
