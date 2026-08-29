@@ -89,6 +89,12 @@ max(
 
 したがって、見積もりが小さくても実測差分が大きい場合は公開せず、見積もりが大きくても実測差分を理由に自動で小さくなったとは判断しない。
 
+生成、検証、公開の各Jobでdefault branchを再解決しないよう、入力検証時のHEADを`baseCommitSha`として入力文書とartifactへ記録する。検証と公開はartifactの`baseCommitSha`をcheckoutし、別のHEADで作られた成果物を適用しない。
+
+artifact適用前に、固定したbase commitからPublisherと変更対象別検証処理をrunnerの一時領域へコピーする。artifact適用後はworkspace上の`.github/scripts/auto-pr-publish.mjs`や共通処理を実行せず、固定コピーだけを実行する。
+
+変更されたパスに応じて、`docs/agent-guides/validation.md`に定義されたformatter、health check、構文確認、設定再読み込みを選択して実行する。GUIを起動できないWezTerm検証は未実施理由をJob Summaryへ記録する。
+
 ### 入力の制限
 
 対象パスの件数には上限を設けない。ただし、入力を無制限にしないため、次の既存上限と事前見積もり専用の上限を維持する。
@@ -156,6 +162,8 @@ Sakura AI Engineへの共通リクエストは、`.github/scripts/auto-pr-sakura
 - [`.github/scripts/auto-pr-common.mjs`](../../.github/scripts/auto-pr-common.mjs)
 - [`.github/scripts/auto-pr-estimate.mjs`](../../.github/scripts/auto-pr-estimate.mjs)
 - [`.github/scripts/auto-pr-sakura.mjs`](../../.github/scripts/auto-pr-sakura.mjs)
+- [`.github/scripts/auto-pr-prepare-trusted.mjs`](../../.github/scripts/auto-pr-prepare-trusted.mjs)
+- [`.github/scripts/auto-pr-validate.mjs`](../../.github/scripts/auto-pr-validate.mjs)
 - [`.github/scripts/auto-pr-ai.mjs`](../../.github/scripts/auto-pr-ai.mjs)
 - [`.github/scripts/auto-pr-publish.mjs`](../../.github/scripts/auto-pr-publish.mjs)
 - [`.github/scripts/auto-pr.test.mjs`](../../.github/scripts/auto-pr.test.mjs)

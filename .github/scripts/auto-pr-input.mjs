@@ -6,6 +6,7 @@ import {
   findExistingWork,
   getGithubToken,
   getIssueContext,
+  getRepositoryHeadSha,
   getRepositoryRoot,
   parseTargetPaths,
   readTargetFilesWithinBudget,
@@ -100,10 +101,12 @@ async function main() {
       throw new AutoPrError("existing-work");
     }
 
+    const baseCommitSha = getRepositoryHeadSha(repositoryRoot);
     await writePrivateJson(inputPath, {
       version: 1,
       repository: context.repository,
       issueNumber: context.issueNumber,
+      baseCommitSha,
       issueTitle: context.issueTitle,
       issueBody: context.issueBody,
       defaultBranch: context.defaultBranch,

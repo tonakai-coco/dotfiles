@@ -6,6 +6,7 @@ import {
   parseStrictJsonContent,
   readJsonFile,
   readTargetFilesForEstimate,
+  validateCommitSha,
   validateChangeEstimate,
   validateRepositoryName,
   writeGithubOutput,
@@ -28,6 +29,7 @@ function validateInputDocument(input, repositoryRoot) {
     typeof input.repository !== "string" ||
     !Number.isSafeInteger(input.issueNumber) ||
     input.issueNumber <= 0 ||
+    typeof input.baseCommitSha !== "string" ||
     typeof input.issueTitle !== "string" ||
     typeof input.issueBody !== "string" ||
     typeof input.defaultBranch !== "string" ||
@@ -37,6 +39,7 @@ function validateInputDocument(input, repositoryRoot) {
   }
 
   validateRepositoryName(input.repository);
+  validateCommitSha(input.baseCommitSha);
   assertSafeTargetPaths(input.targetPaths, repositoryRoot);
   return input;
 }
@@ -77,6 +80,7 @@ function createEstimateDocument(input, payload, repositoryRoot) {
     version: 1,
     repository: input.repository,
     issueNumber: input.issueNumber,
+    baseCommitSha: input.baseCommitSha,
     defaultBranch: input.defaultBranch,
     targetPaths: input.targetPaths,
     estimate,

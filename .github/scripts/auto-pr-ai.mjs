@@ -6,6 +6,7 @@ import {
   parseStrictJsonContent,
   readJsonFile,
   readTargetFilesWithinBudget,
+  validateCommitSha,
   validateEstimateDocument,
   validateGeneratedFiles,
   validateRepositoryName,
@@ -33,6 +34,7 @@ function validateInputDocument(input, repositoryRoot) {
     typeof input.repository !== "string" ||
     !Number.isSafeInteger(input.issueNumber) ||
     input.issueNumber <= 0 ||
+    typeof input.baseCommitSha !== "string" ||
     typeof input.issueTitle !== "string" ||
     typeof input.issueBody !== "string" ||
     typeof input.defaultBranch !== "string" ||
@@ -46,6 +48,7 @@ function validateInputDocument(input, repositoryRoot) {
   }
 
   validateRepositoryName(input.repository);
+  validateCommitSha(input.baseCommitSha);
   assertSafeTargetPaths(input.targetPaths, repositoryRoot);
 
   return input;
@@ -86,6 +89,7 @@ function assertEstimateMatchesInput(estimateDocument, input) {
   if (
     estimateDocument.repository !== input.repository ||
     estimateDocument.issueNumber !== input.issueNumber ||
+    estimateDocument.baseCommitSha !== input.baseCommitSha ||
     estimateDocument.defaultBranch !== input.defaultBranch ||
     estimateDocument.targetPaths.length !== input.targetPaths.length ||
     estimateDocument.targetPaths.some((targetPath, index) => targetPath !== input.targetPaths[index])
@@ -125,6 +129,7 @@ async function main() {
     version: 1,
     repository: input.repository,
     issueNumber: input.issueNumber,
+    baseCommitSha: input.baseCommitSha,
     defaultBranch: input.defaultBranch,
     targetPaths: input.targetPaths,
     files: generatedFiles,

@@ -11,6 +11,7 @@ import {
   getChangeMetrics,
   getGithubToken,
   getIssueContext,
+  getRepositoryHeadSha,
   getRepositoryRoot,
   getWorkingTreePaths,
   readJsonFile,
@@ -75,6 +76,12 @@ function assertArtifactMatchesEvent(artifact, context) {
   }
 }
 
+function assertArtifactBaseCommit(artifact, repositoryRoot) {
+  if (getRepositoryHeadSha(repositoryRoot) !== artifact.baseCommitSha) {
+    throw new AutoPrError("artifact-base-commit-mismatch");
+  }
+}
+
 function assertOnlyAllowedChanges(allowedPaths, repositoryRoot) {
   const allowed = new Set(allowedPaths);
   const changedPaths = getWorkingTreePaths(repositoryRoot);
@@ -86,6 +93,7 @@ function assertOnlyAllowedChanges(allowedPaths, repositoryRoot) {
 
 async function applyArtifact(artifact) {
   const repositoryRoot = getRepositoryRoot();
+  assertArtifactBaseCommit(artifact, repositoryRoot);
   const beforePaths = getWorkingTreePaths(repositoryRoot);
   if (beforePaths.length > 0) {
     throw new AutoPrError("working-tree-not-clean");
@@ -130,6 +138,7 @@ function measureArtifactChange(artifact) {
 async function assessArtifact(artifact) {
   const context = await readEventContext();
   assertArtifactMatchesEvent(artifact, context);
+  assertArtifactBaseCommit(artifact, getRepositoryRoot());
   const { metrics, assessment } = measureArtifactChange(artifact);
 
   await writeGithubOutput({
@@ -163,6 +172,7 @@ function buildPullRequestBody(context, artifact, metrics, assessment) {
     "## 検証",
     "- Secretなしの検証Jobで `make check` と `make status` を実行",
     "- Linux向けリンク作成・確認・解除を実行",
+    "- 変更対象に対応するformatter、構文確認、health checkを実行（該当時）",
   ].join("\n");
   if (artifact.estimate) {
     body += `\n\n## 事前見積もり\n${formatEstimateSummary(artifact.estimate)}`;
@@ -188,6 +198,7 @@ function getPushEnvironment(token) {
 async function publishArtifact(artifact) {
   const context = await readEventContext();
   assertArtifactMatchesEvent(artifact, context);
+  assertArtifactBaseCommit(artifact, getRepositoryRoot());
   const { repositoryRoot, changedPaths, metrics, assessment } = measureArtifactChange(artifact);
   const token = getGithubToken();
   if (!token) {

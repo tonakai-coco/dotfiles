@@ -125,30 +125,60 @@ jobs:
       contents: read
       issues: write
     steps:
-      - name: Checkout default branch
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-        with:
-          ref: ${{ github.event.repository.default_branch }}
-          fetch-depth: 1
-          persist-credentials: false
-
       - name: Download generated artifact
         uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
           name: ${{ needs.generate.outputs.artifact_name }}
           path: ${{ runner.temp }}/auto-pr-artifact
 
+      - name: Read generated base commit
+        id: artifact_meta
+        env:
+          AUTO_PR_ARTIFACT_PATH: ${{ runner.temp }}/auto-pr-artifact/auto-pr-output.json
+        run: |
+          set -euo pipefail
+          base_sha="$(node --input-type=module <<'NODE'
+          import { readFile } from "node:fs/promises";
+
+          const artifact = JSON.parse(await readFile(process.env.AUTO_PR_ARTIFACT_PATH, "utf8"));
+          if (
+            !artifact ||
+            typeof artifact.baseCommitSha !== "string" ||
+            !/^[0-9a-f]{40}$/u.test(artifact.baseCommitSha)
+          ) {
+            process.exit(1);
+          }
+          process.stdout.write(artifact.baseCommitSha);
+          NODE
+          )"
+          printf 'base_sha=%s\n' "$base_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout generated base commit
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: ${{ steps.artifact_meta.outputs.base_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Prepare trusted PR scripts
+        env:
+          AUTO_PR_BASE_SHA: ${{ steps.artifact_meta.outputs.base_sha }}
+          AUTO_PR_TRUSTED_DIR: ${{ runner.temp }}/auto-pr-trusted
+        run: node .github/scripts/auto-pr-prepare-trusted.mjs
+
       - name: Apply generated artifact
         env:
           AUTO_PR_ARTIFACT_PATH: ${{ runner.temp }}/auto-pr-artifact/auto-pr-output.json
-        run: node .github/scripts/auto-pr-publish.mjs apply
+          AUTO_PR_TRUSTED_DIR: ${{ runner.temp }}/auto-pr-trusted
+        run: node "$AUTO_PR_TRUSTED_DIR/auto-pr-publish.mjs" apply
 
       - name: Assess generated change size
         id: assess
         env:
           AUTO_PR_ARTIFACT_PATH: ${{ runner.temp }}/auto-pr-artifact/auto-pr-output.json
           GITHUB_TOKEN: ${{ github.token }}
-        run: node .github/scripts/auto-pr-publish.mjs assess
+          AUTO_PR_TRUSTED_DIR: ${{ runner.temp }}/auto-pr-trusted
+        run: node "$AUTO_PR_TRUSTED_DIR/auto-pr-publish.mjs" assess
 
       - name: Run repository validation without Secrets
         if: >-
@@ -167,6 +197,24 @@ jobs:
             test -L "$XDG_CONFIG_HOME/$config"
           done
           make status
+
+      - name: Run changed-component validation
+        if: >-
+          steps.assess.outputs.size_result == 'normal' ||
+          steps.assess.outputs.size_result == 'review'
+        env:
+          AUTO_PR_TRUSTED_DIR: ${{ runner.temp }}/auto-pr-trusted
+        run: node "$AUTO_PR_TRUSTED_DIR/auto-pr-validate.mjs"
+
+      - name: Remove Linux links after validation
+        if: >-
+          steps.assess.outputs.size_result == 'normal' ||
+          steps.assess.outputs.size_result == 'review'
+        env:
+          HOME: ${{ runner.temp }}/home
+          XDG_CONFIG_HOME: ${{ runner.temp }}/home/.config
+        run: |
+          set -euo pipefail
           make unlink-linux
           for config in wezterm nvim ubuntu_nvim tmux; do
             test ! -L "$XDG_CONFIG_HOME/$config"
@@ -177,7 +225,8 @@ jobs:
         env:
           AUTO_PR_REASON: validation-failed
           GITHUB_TOKEN: ${{ github.token }}
-        run: node .github/scripts/auto-pr-publish.mjs comment
+          AUTO_PR_TRUSTED_DIR: ${{ runner.temp }}/auto-pr-trusted
+        run: node "$AUTO_PR_TRUSTED_DIR/auto-pr-publish.mjs" comment
 
   publish:
     needs: [generate, validate]
@@ -193,35 +242,66 @@ jobs:
       issues: write
       pull-requests: write
     steps:
-      - name: Checkout default branch
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-        with:
-          ref: ${{ github.event.repository.default_branch }}
-          fetch-depth: 1
-          persist-credentials: false
-
       - name: Download generated artifact
         uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
           name: ${{ needs.generate.outputs.artifact_name }}
           path: ${{ runner.temp }}/auto-pr-artifact
 
+      - name: Read generated base commit
+        id: artifact_meta
+        env:
+          AUTO_PR_ARTIFACT_PATH: ${{ runner.temp }}/auto-pr-artifact/auto-pr-output.json
+        run: |
+          set -euo pipefail
+          base_sha="$(node --input-type=module <<'NODE'
+          import { readFile } from "node:fs/promises";
+
+          const artifact = JSON.parse(await readFile(process.env.AUTO_PR_ARTIFACT_PATH, "utf8"));
+          if (
+            !artifact ||
+            typeof artifact.baseCommitSha !== "string" ||
+            !/^[0-9a-f]{40}$/u.test(artifact.baseCommitSha)
+          ) {
+            process.exit(1);
+          }
+          process.stdout.write(artifact.baseCommitSha);
+          NODE
+          )"
+          printf 'base_sha=%s\n' "$base_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout generated base commit
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: ${{ steps.artifact_meta.outputs.base_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Prepare trusted PR scripts
+        env:
+          AUTO_PR_BASE_SHA: ${{ steps.artifact_meta.outputs.base_sha }}
+          AUTO_PR_TRUSTED_DIR: ${{ runner.temp }}/auto-pr-trusted
+        run: node .github/scripts/auto-pr-prepare-trusted.mjs
+
       - name: Apply generated artifact
         env:
           AUTO_PR_ARTIFACT_PATH: ${{ runner.temp }}/auto-pr-artifact/auto-pr-output.json
-        run: node .github/scripts/auto-pr-publish.mjs apply
+          AUTO_PR_TRUSTED_DIR: ${{ runner.temp }}/auto-pr-trusted
+        run: node "$AUTO_PR_TRUSTED_DIR/auto-pr-publish.mjs" apply
 
       - name: Publish branch, commit, and Pull Request
         env:
           AUTO_PR_ARTIFACT_PATH: ${{ runner.temp }}/auto-pr-artifact/auto-pr-output.json
+          AUTO_PR_TRUSTED_DIR: ${{ runner.temp }}/auto-pr-trusted
           # Keep publishing disabled until the repository variable is explicitly changed.
           AUTO_PR_DRY_RUN: ${{ vars.AUTO_PR_DRY_RUN || 'true' }}
           GITHUB_TOKEN: ${{ github.token }}
-        run: node .github/scripts/auto-pr-publish.mjs publish
+        run: node "$AUTO_PR_TRUSTED_DIR/auto-pr-publish.mjs" publish
 
       - name: Comment publish failure
         if: failure()
         env:
           AUTO_PR_REASON: publish-failed
           GITHUB_TOKEN: ${{ github.token }}
-        run: node .github/scripts/auto-pr-publish.mjs comment
+          AUTO_PR_TRUSTED_DIR: ${{ runner.temp }}/auto-pr-trusted
+        run: node "$AUTO_PR_TRUSTED_DIR/auto-pr-publish.mjs" comment

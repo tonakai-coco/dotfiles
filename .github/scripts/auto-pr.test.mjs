@@ -23,10 +23,15 @@ import {
   parseStrictJsonContent,
   parseGitNumstat,
   parseTargetPaths,
+  validateCommitSha,
   validateChangeEstimate,
   validateEstimateDocument,
+  validateArtifact,
   validateGeneratedFiles,
 } from "./auto-pr-common.mjs";
+import { getValidationPlan } from "./auto-pr-validate.mjs";
+
+const TEST_COMMIT_SHA = "a".repeat(40);
 
 test("parses the exact target path section", () => {
   const result = parseTargetPaths([
@@ -338,6 +343,7 @@ test("validates an estimate document before passing it between workflow jobs", (
     version: 1,
     repository: "tonakai-coco/dotfiles",
     issueNumber: 10,
+    baseCommitSha: TEST_COMMIT_SHA,
     defaultBranch: "main",
     targetPaths: ["Makefile"],
     estimate: {
@@ -355,6 +361,40 @@ test("validates an estimate document before passing it between workflow jobs", (
 
   assert.equal(document.estimate.assessment.level, "proceed");
   assert.equal(document.estimate.metrics.changedLines, 20);
+});
+
+test("validates the immutable base commit SHA", () => {
+  assert.equal(validateCommitSha(TEST_COMMIT_SHA), TEST_COMMIT_SHA);
+  assert.throws(() => validateCommitSha("not-a-commit"), /invalid-commit-sha/);
+});
+
+test("carries the immutable base commit in the generated artifact", () => {
+  const artifact = validateArtifact({
+    version: 1,
+    repository: "tonakai-coco/dotfiles",
+    issueNumber: 10,
+    baseCommitSha: TEST_COMMIT_SHA,
+    defaultBranch: "main",
+    targetPaths: ["Makefile"],
+    files: [{ path: "Makefile", content: "all:\n\t@true\n" }],
+  });
+
+  assert.equal(artifact.baseCommitSha, TEST_COMMIT_SHA);
+});
+
+test("selects documented component validations from changed paths", () => {
+  assert.deepEqual(
+    getValidationPlan([
+      "config/nvim/lua/config/options.lua",
+      "config/fish/functions/cd.fish",
+      "config/karabiner/numpad.json",
+      "config/wezterm/wezterm.lua",
+      "config/tmux/tmux.conf",
+      ".github/workflows/auto-pr.yml",
+    ]),
+    ["nvim-format", "nvim-health", "fish-indent", "karabiner-json", "wezterm-start", "tmux-source"],
+  );
+  assert.deepEqual(getValidationPlan([".github/workflows/auto-pr.yml", "docs/README.md"]), []);
 });
 
 test("builds bounded file context for a preflight estimate", async (t) => {
@@ -517,4 +557,14 @@ test("formats a bounded change summary for dry-run and split comments", () => {
     createComment("change-too-large", { metrics, assessment }),
     /対象を1つの目的・受入条件・変更領域に分割して再依頼/u,
   );
+});
+
+test("uses a success message for published comments", () => {
+  const comment = createComment("published", {
+    pullRequestUrl: "https://github.com/tonakai-coco/dotfiles/pull/31",
+  });
+
+  assert.match(comment, /Pull Requestの作成と公開が完了しました/u);
+  assert.match(comment, /https:\/\/github\.com\/tonakai-coco\/dotfiles\/pull\/31/u);
+  assert.doesNotMatch(comment, /内部エラー/u);
 });

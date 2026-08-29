@@ -38,6 +38,7 @@ export const GITHUB_API_VERSION = "2022-11-28";
 
 const PATH_CONTROL_CHARACTERS = /[\u0000-\u001f\u007f\u2028\u2029]/u;
 const REPOSITORY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*\/[A-Za-z0-9][A-Za-z0-9._-]*$/u;
+const COMMIT_SHA_PATTERN = /^[0-9a-f]{40}$/u;
 
 export class AutoPrError extends Error {
   constructor(code) {
@@ -61,6 +62,18 @@ export function isRecord(value) {
 
 export function getRepositoryRoot() {
   return path.resolve(process.env.GITHUB_WORKSPACE || process.cwd());
+}
+
+export function validateCommitSha(commitSha) {
+  if (typeof commitSha !== "string" || !COMMIT_SHA_PATTERN.test(commitSha)) {
+    throw new AutoPrError("invalid-commit-sha");
+  }
+
+  return commitSha;
+}
+
+export function getRepositoryHeadSha(repositoryRoot = getRepositoryRoot()) {
+  return validateCommitSha(runGit(["rev-parse", "--verify", "HEAD"], repositoryRoot).trim());
 }
 
 export function getRequiredEnvironment(name) {
@@ -506,6 +519,7 @@ export function validateEstimateDocument(payload, repositoryRoot = getRepository
     typeof payload.repository !== "string" ||
     !Number.isSafeInteger(payload.issueNumber) ||
     payload.issueNumber <= 0 ||
+    typeof payload.baseCommitSha !== "string" ||
     typeof payload.defaultBranch !== "string" ||
     payload.defaultBranch.length === 0 ||
     PATH_CONTROL_CHARACTERS.test(payload.defaultBranch) ||
@@ -516,12 +530,14 @@ export function validateEstimateDocument(payload, repositoryRoot = getRepository
   }
 
   validateRepositoryName(payload.repository);
+  const baseCommitSha = validateCommitSha(payload.baseCommitSha);
   const targetPaths = assertSafeTargetPaths(payload.targetPaths, repositoryRoot);
   const estimate = validateChangeEstimate(payload.estimate, targetPaths, repositoryRoot);
   return {
     version: 1,
     repository: payload.repository,
     issueNumber: payload.issueNumber,
+    baseCommitSha,
     defaultBranch: payload.defaultBranch,
     targetPaths,
     estimate,
@@ -829,6 +845,7 @@ export function validateArtifact(payload, repositoryRoot = getRepositoryRoot()) 
     typeof payload.issueNumber !== "number" ||
     !Number.isSafeInteger(payload.issueNumber) ||
     payload.issueNumber <= 0 ||
+    typeof payload.baseCommitSha !== "string" ||
     typeof payload.defaultBranch !== "string" ||
     payload.defaultBranch.length === 0 ||
     PATH_CONTROL_CHARACTERS.test(payload.defaultBranch) ||
@@ -838,6 +855,7 @@ export function validateArtifact(payload, repositoryRoot = getRepositoryRoot()) 
   }
 
   validateRepositoryName(payload.repository);
+  const baseCommitSha = validateCommitSha(payload.baseCommitSha);
   if (payload.defaultBranch.includes("\0")) {
     throw new AutoPrError("invalid-artifact");
   }
@@ -851,6 +869,7 @@ export function validateArtifact(payload, repositoryRoot = getRepositoryRoot()) 
     version: 1,
     repository: payload.repository,
     issueNumber: payload.issueNumber,
+    baseCommitSha,
     defaultBranch: payload.defaultBranch,
     targetPaths,
     files,
@@ -1155,6 +1174,7 @@ const COMMENT_TEXT = Object.freeze({
   "preflight-review-required": "生成前の変更量見積もりの確度が低いため、完成ファイルを生成せず人手確認を依頼します。対象範囲と変更方針を具体化して再依頼してください。",
   "change-too-large": "生成された変更量が自動PRの変更予算を超えたため、自動PRを停止しました。対象を1つの目的・受入条件・変更領域に分割して再依頼してください。",
   "dry-run": "生成物とSecretなしの検証は完了しました。現在はdry-runのため、branch・push・commit・Pull Request作成は実行していません。",
+  published: "Pull Requestの作成と公開が完了しました。",
   "no-change": "修正前後に差分がないため、commitとPull Request作成は実行していません。",
   "internal-error": "自動PR処理で入力または内部状態を確認できないため、安全側に停止しました。",
 });
