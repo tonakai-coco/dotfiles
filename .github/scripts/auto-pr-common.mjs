@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { appendFile, chmod, lstat, readFile, realpath, writeFile } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import * as path from "node:path";
@@ -31,6 +32,7 @@ export const CHANGE_SIZE_POLICY = Object.freeze({
   }),
 });
 export const AUTO_PR_LABEL = "auto-pr";
+export const AUTO_PR_REQUEST_KEY_VERSION = 1;
 export const SAKURA_AI_DEFAULT_ENDPOINT = "https://api.ai.sakura.ad.jp/v1";
 export const SAKURA_AI_DEFAULT_MODEL = "gpt-oss-120b";
 export const GITHUB_API_BASE_URL = "https://api.github.com";
@@ -39,6 +41,7 @@ export const GITHUB_API_VERSION = "2022-11-28";
 const PATH_CONTROL_CHARACTERS = /[\u0000-\u001f\u007f\u2028\u2029]/u;
 const REPOSITORY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]*\/[A-Za-z0-9][A-Za-z0-9._-]*$/u;
 const COMMIT_SHA_PATTERN = /^[0-9a-f]{40}$/u;
+const REQUEST_KEY_PATTERN = /^[0-9a-f]{64}$/u;
 
 export class AutoPrError extends Error {
   constructor(code) {
@@ -70,6 +73,68 @@ export function validateCommitSha(commitSha) {
   }
 
   return commitSha;
+}
+
+export function createAutoPrRequestKey({
+  repository,
+  issueNumber,
+  defaultBranch,
+  issueTitle,
+  issueBody,
+  targetPaths,
+  baseCommitSha,
+}) {
+  if (
+    typeof repository !== "string" ||
+    !Number.isSafeInteger(issueNumber) ||
+    issueNumber <= 0 ||
+    typeof defaultBranch !== "string" ||
+    typeof issueTitle !== "string" ||
+    typeof issueBody !== "string" ||
+    !Array.isArray(targetPaths) ||
+    targetPaths.length === 0 ||
+    targetPaths.some((targetPath) => typeof targetPath !== "string")
+  ) {
+    throw new AutoPrError("invalid-request-key-input");
+  }
+
+  validateRepositoryName(repository);
+  validateCommitSha(baseCommitSha);
+  const canonicalRequest = JSON.stringify({
+    version: AUTO_PR_REQUEST_KEY_VERSION,
+    repository,
+    issueNumber,
+    defaultBranch,
+    issueTitle,
+    issueBody,
+    targetPaths,
+    baseCommitSha,
+  });
+  return createHash("sha256").update(canonicalRequest, "utf8").digest("hex");
+}
+
+export function getAutoPrRequestMarker(requestKey) {
+  if (typeof requestKey !== "string" || !REQUEST_KEY_PATTERN.test(requestKey)) {
+    throw new AutoPrError("invalid-request-key");
+  }
+
+  return `<!-- sakura-auto-pr:request-key:${requestKey} -->`;
+}
+
+export function hasMatchingAutoPrRequestComment(comments, requestKey) {
+  if (!Array.isArray(comments)) {
+    throw new AutoPrError("github-response-invalid");
+  }
+
+  const marker = getAutoPrRequestMarker(requestKey);
+  return comments.some(
+    (comment) =>
+      isRecord(comment) &&
+      isRecord(comment.user) &&
+      comment.user.login === "github-actions[bot]" &&
+      typeof comment.body === "string" &&
+      comment.body.includes(marker),
+  );
 }
 
 export function getRepositoryHeadSha(repositoryRoot = getRepositoryRoot()) {
@@ -1059,6 +1124,33 @@ export async function findExistingWork({ token, repository, branch, issueNumber 
   }
 }
 
+export async function hasExistingAutoPrRequest({ token, repository, issueNumber, requestKey }) {
+  if (!Number.isSafeInteger(issueNumber) || issueNumber <= 0) {
+    throw new AutoPrError("invalid-issue-number");
+  }
+
+  getAutoPrRequestMarker(requestKey);
+  for (let page = 1; page <= 10; page += 1) {
+    const query = new URLSearchParams({ page: String(page), per_page: "100" });
+    const comments = await githubRequest({
+      token,
+      path: `${repositoryApiPath(repository)}/issues/${issueNumber}/comments?${query.toString()}`,
+    });
+
+    if (!Array.isArray(comments)) {
+      throw new AutoPrError("github-response-invalid");
+    }
+    if (hasMatchingAutoPrRequestComment(comments, requestKey)) {
+      return true;
+    }
+    if (comments.length < 100) {
+      return false;
+    }
+  }
+
+  throw new AutoPrError("github-pagination-limit");
+}
+
 export async function createGithubIssueComment({ token, repository, issueNumber, body }) {
   await githubRequest({
     token,
@@ -1164,6 +1256,7 @@ const COMMENT_TEXT = Object.freeze({
   "missing-label": "`auto-pr` ラベルがないため、自動PRは開始していません。",
   "unsupported-event": "対象外のIssueイベントのため、自動PRは開始していません。",
   "not-issue": "Pull Requestは自動PRの対象外です。",
+  "already-processed": "同じIssue要求の自動PR処理はすでに完了しているため、重複処理をスキップしました。",
   "existing-work": "同じIssueに対応する既存のブランチまたはPull Requestがあるため、重複作成を停止しました。",
   "github-state-check-failed": "既存ブランチまたはPull Requestを確認できないため、安全側に停止しました。",
   "ai-failed": "Sakura AI Engineの生成または応答検証に失敗したため、自動PRを停止しました。",
@@ -1178,6 +1271,15 @@ const COMMENT_TEXT = Object.freeze({
   "no-change": "修正前後に差分がないため、commitとPull Request作成は実行していません。",
   "internal-error": "自動PR処理で入力または内部状態を確認できないため、安全側に停止しました。",
 });
+
+const IDEMPOTENT_COMMENT_REASONS = new Set([
+  "preflight-too-large",
+  "preflight-review-required",
+  "change-too-large",
+  "dry-run",
+  "published",
+  "no-change",
+]);
 
 const CHANGE_LEVEL_TEXT = Object.freeze({
   normal: "通常",
@@ -1258,6 +1360,9 @@ export function createComment(reason, details = {}) {
   if (reason === "published" && typeof details.pullRequestUrl === "string") {
     body += `\n\nPull Request: ${details.pullRequestUrl}`;
   }
+  if (IDEMPOTENT_COMMENT_REASONS.has(reason) && typeof details.requestKey === "string") {
+    body += `\n\n${getAutoPrRequestMarker(details.requestKey)}`;
+  }
 
   return body;
 }
@@ -1273,6 +1378,7 @@ export const INPUT_REASON_CODES = new Set([
   "missing-label",
   "unsupported-event",
   "not-issue",
+  "already-processed",
   "existing-work",
   "github-state-check-failed",
   "internal-error",
