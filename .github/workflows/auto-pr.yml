@@ -2,7 +2,7 @@ name: issue-auto-pr
 
 on:
   issues:
-    types: [opened, labeled]
+    types: [labeled]
 
 permissions: {}
 
@@ -15,8 +15,8 @@ jobs:
     if: >-
       github.event.issue.pull_request == null &&
       contains(github.event.issue.labels.*.name, 'auto-pr') &&
-      (github.event.action == 'opened' ||
-      (github.event.action == 'labeled' && github.event.label.name == 'auto-pr'))
+      github.event.action == 'labeled' &&
+      github.event.label.name == 'auto-pr'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -43,7 +43,10 @@ jobs:
         run: node .github/scripts/auto-pr-input.mjs
 
       - name: Comment rejected input
-        if: steps.input.outcome == 'success' && steps.input.outputs.result != 'ready'
+        if: >-
+          steps.input.outcome == 'success' &&
+          steps.input.outputs.result != 'ready' &&
+          steps.input.outputs.result != 'skipped'
         env:
           AUTO_PR_REASON: ${{ steps.input.outputs.reason_code }}
           GITHUB_TOKEN: ${{ github.token }}
@@ -71,6 +74,7 @@ jobs:
         if: steps.estimate.outcome == 'success' && steps.estimate.outputs.result != 'proceed'
         env:
           AUTO_PR_REASON: ${{ steps.estimate.outputs.reason_code }}
+          AUTO_PR_INPUT_PATH: ${{ runner.temp }}/auto-pr-input.json
           AUTO_PR_PLAN_PATH: ${{ runner.temp }}/auto-pr-plan.json
           GITHUB_TOKEN: ${{ github.token }}
         run: node .github/scripts/auto-pr-publish.mjs comment
@@ -79,6 +83,7 @@ jobs:
         if: failure() && steps.estimate.outcome == 'failure'
         env:
           AUTO_PR_REASON: estimate-failed
+          AUTO_PR_INPUT_PATH: ${{ runner.temp }}/auto-pr-input.json
           GITHUB_TOKEN: ${{ github.token }}
         run: node .github/scripts/auto-pr-publish.mjs comment
 
@@ -102,6 +107,7 @@ jobs:
         if: failure() && steps.ai.outcome == 'failure'
         env:
           AUTO_PR_REASON: ai-failed
+          AUTO_PR_INPUT_PATH: ${{ runner.temp }}/auto-pr-input.json
           GITHUB_TOKEN: ${{ github.token }}
         run: node .github/scripts/auto-pr-publish.mjs comment
 
@@ -224,6 +230,7 @@ jobs:
         if: failure()
         env:
           AUTO_PR_REASON: validation-failed
+          AUTO_PR_ARTIFACT_PATH: ${{ runner.temp }}/auto-pr-artifact/auto-pr-output.json
           GITHUB_TOKEN: ${{ github.token }}
           AUTO_PR_TRUSTED_DIR: ${{ runner.temp }}/auto-pr-trusted
         run: node "$AUTO_PR_TRUSTED_DIR/auto-pr-publish.mjs" comment
@@ -302,6 +309,7 @@ jobs:
         if: failure()
         env:
           AUTO_PR_REASON: publish-failed
+          AUTO_PR_ARTIFACT_PATH: ${{ runner.temp }}/auto-pr-artifact/auto-pr-output.json
           GITHUB_TOKEN: ${{ github.token }}
           AUTO_PR_TRUSTED_DIR: ${{ runner.temp }}/auto-pr-trusted
         run: node "$AUTO_PR_TRUSTED_DIR/auto-pr-publish.mjs" comment

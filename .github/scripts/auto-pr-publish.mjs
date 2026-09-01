@@ -1,6 +1,7 @@
 import {
   AutoPrError,
   classifyChangeSize,
+  createAutoPrRequestKey,
   createComment,
   createGithubIssueComment,
   createGithubPullRequest,
@@ -114,13 +115,73 @@ async function postComment(reason, details = {}) {
     throw new AutoPrError("github-token-missing");
   }
 
+  const requestKey =
+    typeof details.requestKey === "string"
+      ? details.requestKey
+      : await getRequestKeyForComment(context);
+  const commentDetails = requestKey ? { ...details, requestKey } : details;
+
   await createGithubIssueComment({
     token,
     repository: context.repository,
     issueNumber: context.issueNumber,
-    body: createComment(reason, details),
+    body: createComment(reason, commentDetails),
   });
   console.log("Issue notification sent.");
+}
+
+async function getRequestKeyForComment(context) {
+  const artifactPath = process.env.AUTO_PR_ARTIFACT_PATH;
+  if (artifactPath) {
+    try {
+      const artifact = validateArtifact(await readJsonFile(artifactPath), getRepositoryRoot());
+      if (
+        artifact.repository === context.repository &&
+        artifact.issueNumber === context.issueNumber &&
+        artifact.defaultBranch === context.defaultBranch
+      ) {
+        return createAutoPrRequestKey({
+          repository: context.repository,
+          issueNumber: context.issueNumber,
+          defaultBranch: context.defaultBranch,
+          issueTitle: context.issueTitle,
+          issueBody: context.issueBody,
+          targetPaths: artifact.targetPaths,
+          baseCommitSha: artifact.baseCommitSha,
+        });
+      }
+    } catch {
+      // Failure comments must remain available even when the artifact is invalid.
+    }
+  }
+
+  const inputPath = process.env.AUTO_PR_INPUT_PATH;
+  if (!inputPath) {
+    return undefined;
+  }
+
+  try {
+    const input = await readJsonFile(inputPath);
+    if (
+      input.repository === context.repository &&
+      input.issueNumber === context.issueNumber &&
+      input.defaultBranch === context.defaultBranch
+    ) {
+      return createAutoPrRequestKey({
+        repository: context.repository,
+        issueNumber: context.issueNumber,
+        defaultBranch: context.defaultBranch,
+        issueTitle: context.issueTitle,
+        issueBody: context.issueBody,
+        targetPaths: input.targetPaths,
+        baseCommitSha: input.baseCommitSha,
+      });
+    }
+  } catch {
+    // Failure comments must remain available even when the input document is invalid.
+  }
+
+  return undefined;
 }
 
 function isDryRun() {
@@ -140,6 +201,15 @@ async function assessArtifact(artifact) {
   assertArtifactMatchesEvent(artifact, context);
   assertArtifactBaseCommit(artifact, getRepositoryRoot());
   const { metrics, assessment } = measureArtifactChange(artifact);
+  const requestKey = createAutoPrRequestKey({
+    repository: context.repository,
+    issueNumber: context.issueNumber,
+    defaultBranch: context.defaultBranch,
+    issueTitle: context.issueTitle,
+    issueBody: context.issueBody,
+    targetPaths: artifact.targetPaths,
+    baseCommitSha: artifact.baseCommitSha,
+  });
 
   await writeGithubOutput({
     size_result: assessment.level,
@@ -149,7 +219,7 @@ async function assessArtifact(artifact) {
   });
 
   if (assessment.level === "split") {
-    await postComment("change-too-large", { metrics, assessment });
+    await postComment("change-too-large", { metrics, assessment, requestKey });
   }
 
   console.log(
@@ -206,6 +276,15 @@ async function publishArtifact(artifact) {
   }
 
   const branch = `auto-fix/${context.issueNumber}`;
+  const requestKey = createAutoPrRequestKey({
+    repository: context.repository,
+    issueNumber: context.issueNumber,
+    defaultBranch: context.defaultBranch,
+    issueTitle: context.issueTitle,
+    issueBody: context.issueBody,
+    targetPaths: artifact.targetPaths,
+    baseCommitSha: artifact.baseCommitSha,
+  });
   const existingWork = await findExistingWork({
     token,
     repository: context.repository,
@@ -218,12 +297,12 @@ async function publishArtifact(artifact) {
   }
 
   if (changedPaths.length === 0) {
-    await postComment("no-change");
+    await postComment("no-change", { requestKey });
     return;
   }
 
   if (assessment.level === "split") {
-    await postComment("change-too-large", { metrics, assessment });
+    await postComment("change-too-large", { metrics, assessment, requestKey });
     return;
   }
 
@@ -233,6 +312,7 @@ async function publishArtifact(artifact) {
       metrics,
       assessment,
       estimate: artifact.estimate,
+      requestKey,
     });
     return;
   }
@@ -279,6 +359,7 @@ async function publishArtifact(artifact) {
     assessment,
     estimate: artifact.estimate,
     pullRequestUrl: pullRequest.htmlUrl,
+    requestKey,
   });
 }
 

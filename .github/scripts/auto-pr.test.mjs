@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import test from "node:test";
 import * as path from "node:path";
 import { tmpdir } from "node:os";
@@ -14,10 +14,14 @@ import {
   MAX_TARGET_PATH_SPEC_BYTES,
   assertSafeTargetPaths,
   classifyChangeSize,
+  createAutoPrRequestKey,
   createComment,
   formatChangeSummary,
   formatEstimateSummary,
   getChangeMetrics,
+  getAutoPrRequestMarker,
+  hasExistingAutoPrRequest,
+  hasMatchingAutoPrRequestComment,
   readTargetFilesWithinBudget,
   readTargetFilesForEstimate,
   parseStrictJsonContent,
@@ -32,6 +36,94 @@ import {
 import { getValidationPlan } from "./auto-pr-validate.mjs";
 
 const TEST_COMMIT_SHA = "a".repeat(40);
+
+const TEST_REQUEST = {
+  repository: "tonakai-coco/dotfiles",
+  issueNumber: 31,
+  defaultBranch: "main",
+  issueTitle: "dry-runで動作確認する",
+  issueBody: "## 対象パス\n- docs/agent-guides/validation.md",
+  targetPaths: ["docs/agent-guides/validation.md"],
+  baseCommitSha: TEST_COMMIT_SHA,
+};
+
+test("derives a stable request key from the Issue request", () => {
+  const requestKey = createAutoPrRequestKey(TEST_REQUEST);
+
+  assert.match(requestKey, /^[0-9a-f]{64}$/u);
+  assert.equal(createAutoPrRequestKey(TEST_REQUEST), requestKey);
+  assert.notEqual(
+    createAutoPrRequestKey({ ...TEST_REQUEST, issueBody: `${TEST_REQUEST.issueBody}\n変更` }),
+    requestKey,
+  );
+});
+
+test("detects a completed request marker without treating a failure comment as complete", () => {
+  const requestKey = createAutoPrRequestKey(TEST_REQUEST);
+  const completedComment = createComment("dry-run", { requestKey });
+  const failureComment = createComment("ai-failed", { requestKey });
+
+  assert.match(completedComment, new RegExp(getAutoPrRequestMarker(requestKey), "u"));
+  assert.equal(
+    hasMatchingAutoPrRequestComment(
+      [{ body: completedComment, user: { login: "github-actions[bot]" } }],
+      requestKey,
+    ),
+    true,
+  );
+  assert.equal(
+    hasMatchingAutoPrRequestComment(
+      [{ body: completedComment, user: { login: "github-actions[bot]" } }],
+      "b".repeat(64),
+    ),
+    false,
+  );
+  assert.equal(
+    hasMatchingAutoPrRequestComment(
+      [{ body: completedComment, user: { login: "human-user" } }],
+      requestKey,
+    ),
+    false,
+  );
+  assert.doesNotMatch(failureComment, new RegExp(getAutoPrRequestMarker(requestKey), "u"));
+});
+
+test("checks Issue comments for an existing auto-pr request marker", async () => {
+  const requestKey = createAutoPrRequestKey(TEST_REQUEST);
+  const previousFetch = globalThis.fetch;
+  globalThis.fetch = async () => ({
+    ok: true,
+    status: 200,
+    json: async () => [
+      { body: createComment("dry-run", { requestKey }), user: { login: "github-actions[bot]" } },
+    ],
+  });
+
+  try {
+    assert.equal(
+      await hasExistingAutoPrRequest({
+        token: "test-token",
+        repository: TEST_REQUEST.repository,
+        issueNumber: TEST_REQUEST.issueNumber,
+        requestKey,
+      }),
+      true,
+    );
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
+});
+
+test("subscribes to the auto-pr label event only", async () => {
+  const workflow = await readFile(
+    new URL("../workflows/auto-pr.yml", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(workflow, /types: \[labeled\]/u);
+  assert.doesNotMatch(workflow, /types: \[opened,\s*labeled\]/u);
+  assert.match(workflow, /steps\.input\.outputs\.result != 'skipped'/u);
+});
 
 test("parses the exact target path section", () => {
   const result = parseTargetPaths([

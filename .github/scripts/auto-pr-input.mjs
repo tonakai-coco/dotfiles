@@ -3,11 +3,13 @@ import {
   AutoPrError,
   GithubApiError,
   INPUT_REASON_CODES,
+  createAutoPrRequestKey,
   findExistingWork,
   getGithubToken,
   getIssueContext,
   getRepositoryHeadSha,
   getRepositoryRoot,
+  hasExistingAutoPrRequest,
   parseTargetPaths,
   readTargetFilesWithinBudget,
   readJsonFile,
@@ -55,10 +57,10 @@ async function main() {
     if (context.isPullRequest) {
       throw new AutoPrError("not-issue");
     }
-    if (context.action !== "opened" && context.action !== "labeled") {
+    if (context.action !== "labeled") {
       throw new AutoPrError("unsupported-event");
     }
-    if (context.action === "labeled" && context.labelName !== AUTO_PR_LABEL) {
+    if (context.labelName !== AUTO_PR_LABEL) {
       throw new AutoPrError("unsupported-event");
     }
     if (context.state !== "open") {
@@ -81,6 +83,36 @@ async function main() {
       throw new AutoPrError("github-state-check-failed");
     }
 
+    const baseCommitSha = getRepositoryHeadSha(repositoryRoot);
+    const requestKey = createAutoPrRequestKey({
+      repository: context.repository,
+      issueNumber: context.issueNumber,
+      defaultBranch: context.defaultBranch,
+      issueTitle: context.issueTitle,
+      issueBody: context.issueBody,
+      targetPaths: parsedPaths.paths,
+      baseCommitSha,
+    });
+
+    let alreadyProcessed;
+    try {
+      alreadyProcessed = await hasExistingAutoPrRequest({
+        token,
+        repository: context.repository,
+        issueNumber: context.issueNumber,
+        requestKey,
+      });
+    } catch (error) {
+      if (error instanceof GithubApiError || error instanceof AutoPrError) {
+        throw new AutoPrError("github-state-check-failed");
+      }
+      throw error;
+    }
+
+    if (alreadyProcessed) {
+      throw new AutoPrError("already-processed");
+    }
+
     const branch = `auto-fix/${context.issueNumber}`;
     let existingWork;
     try {
@@ -101,7 +133,6 @@ async function main() {
       throw new AutoPrError("existing-work");
     }
 
-    const baseCommitSha = getRepositoryHeadSha(repositoryRoot);
     await writePrivateJson(inputPath, {
       version: 1,
       repository: context.repository,
@@ -111,11 +142,15 @@ async function main() {
       issueBody: context.issueBody,
       defaultBranch: context.defaultBranch,
       targetPaths: parsedPaths.paths,
+      requestKey,
     });
     result = "ready";
     reasonCode = "";
   } catch (error) {
-    if (error instanceof AutoPrError && INPUT_REASON_CODES.has(error.code)) {
+    if (error instanceof AutoPrError && error.code === "already-processed") {
+      result = "skipped";
+      reasonCode = error.code;
+    } else if (error instanceof AutoPrError && INPUT_REASON_CODES.has(error.code)) {
       reasonCode = error.code;
     } else if (error instanceof AutoPrError && FILE_CHECK_ERROR_CODES.has(error.code)) {
       reasonCode = "file-missing";
@@ -127,6 +162,8 @@ async function main() {
   await writeGithubOutput({ result, reason_code: reasonCode });
   if (result === "ready") {
     console.log("Issue input accepted.");
+  } else if (result === "skipped") {
+    console.log("Duplicate auto-PR request skipped.");
   } else {
     console.log(`Issue input rejected: ${reasonCode}`);
   }
