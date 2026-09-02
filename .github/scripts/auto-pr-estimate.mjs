@@ -1,7 +1,9 @@
 import {
   AutoPrError,
   assertSafeTargetPaths,
+  formatPreflightEstimateFailure,
   getRepositoryRoot,
+  getPreflightEstimateFailureReason,
   isRecord,
   parseStrictJsonContent,
   readJsonFile,
@@ -122,7 +124,15 @@ async function main() {
   console.log(`Preflight estimate completed: ${document.estimate.assessment.level}.`);
 }
 
-main().catch(() => {
-  console.error("Preflight estimate failed.");
+main().catch(async (error) => {
+  const reasonCode = getPreflightEstimateFailureReason(error);
+
+  try {
+    await writeGithubOutput({ reason_code: reasonCode });
+  } catch {
+    // Preserve the diagnostic even when GitHub output publication is unavailable.
+  }
+
+  console.error(formatPreflightEstimateFailure(error));
   process.exitCode = 1;
 });

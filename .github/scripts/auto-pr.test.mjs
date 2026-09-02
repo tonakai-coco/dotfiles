@@ -6,6 +6,7 @@ import * as path from "node:path";
 import { tmpdir } from "node:os";
 
 import {
+  AutoPrError,
   CHANGE_SIZE_POLICY,
   MAX_ESTIMATE_CONTEXT_BYTES,
   MAX_ESTIMATE_PREVIEW_CHARS,
@@ -18,8 +19,10 @@ import {
   createComment,
   formatChangeSummary,
   formatEstimateSummary,
+  formatPreflightEstimateFailure,
   getChangeMetrics,
   getAutoPrRequestMarker,
+  getPreflightEstimateFailureReason,
   hasExistingAutoPrRequest,
   hasMatchingAutoPrRequestComment,
   readTargetFilesWithinBudget,
@@ -123,6 +126,10 @@ test("subscribes to the auto-pr label event only", async () => {
   assert.match(workflow, /types: \[labeled\]/u);
   assert.doesNotMatch(workflow, /types: \[opened,\s*labeled\]/u);
   assert.match(workflow, /steps\.input\.outputs\.result != 'skipped'/u);
+  assert.match(
+    workflow,
+    /AUTO_PR_REASON: \$\{\{ steps\.estimate\.outputs\.reason_code \|\| 'estimate-failed' \}\}/u,
+  );
 });
 
 test("parses the exact target path section", () => {
@@ -354,6 +361,26 @@ test("requires manual review when the preflight estimate has low confidence", ()
   assert.equal(estimate.assessment.level, "manual-review");
   assert.equal(estimate.assessment.estimatedLevel, "normal");
   assert.deepEqual(estimate.assessment.reasons, ["low-confidence"]);
+});
+
+test("explains when the Issue has no concrete change plan", () => {
+  const error = new AutoPrError("estimate-plan-empty");
+
+  assert.equal(getPreflightEstimateFailureReason(error), "estimate-plan-empty");
+  assert.match(formatPreflightEstimateFailure(error), /estimate-plan-empty/u);
+  assert.match(formatPreflightEstimateFailure(error), /具体的な変更内容/u);
+  assert.match(formatPreflightEstimateFailure(error), /受入条件/u);
+  assert.match(createComment("estimate-plan-empty"), /対象パスだけでなく/u);
+});
+
+test("keeps an unknown preflight failure generic", () => {
+  const error = new AutoPrError("sakura-request-failed");
+
+  assert.equal(getPreflightEstimateFailureReason(error), "estimate-failed");
+  assert.equal(
+    formatPreflightEstimateFailure(error),
+    "Preflight estimate failed [estimate-failed].",
+  );
 });
 
 test("rejects a preflight plan that contains an unrequested path", () => {

@@ -59,6 +59,31 @@ export class GithubApiError extends AutoPrError {
   }
 }
 
+export const PREFLIGHT_ESTIMATE_FAILURE_MESSAGES = Object.freeze({
+  "estimate-plan-empty":
+    "Issue本文に具体的な変更内容がないため、変更計画を作成できませんでした。対象パスだけでなく、変更内容と受入条件を記載してください。",
+});
+
+export function getPreflightEstimateFailureReason(error) {
+  if (
+    error instanceof AutoPrError &&
+    Object.prototype.hasOwnProperty.call(PREFLIGHT_ESTIMATE_FAILURE_MESSAGES, error.code)
+  ) {
+    return error.code;
+  }
+
+  return "estimate-failed";
+}
+
+export function formatPreflightEstimateFailure(error) {
+  const reason = getPreflightEstimateFailureReason(error);
+  const message = PREFLIGHT_ESTIMATE_FAILURE_MESSAGES[reason];
+
+  return message
+    ? `Preflight estimate failed [${reason}]: ${message}`
+    : `Preflight estimate failed [${reason}].`;
+}
+
 export function isRecord(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -1263,6 +1288,7 @@ const COMMENT_TEXT = Object.freeze({
   "validation-failed": "Secretなしの検証に失敗したため、自動PRを停止しました。",
   "publish-failed": "検証済み成果物の公開に失敗しました。自動PRを停止しました。",
   "estimate-failed": "生成前の変更計画を作成または検証できなかったため、自動PRを停止しました。",
+  "estimate-plan-empty": PREFLIGHT_ESTIMATE_FAILURE_MESSAGES["estimate-plan-empty"],
   "preflight-too-large": "生成前の変更量見積もりが自動PRの変更予算を超えたため、完成ファイルを生成せず停止しました。対象を1つの目的、受入条件、変更領域に分割して再依頼してください。",
   "preflight-review-required": "生成前の変更量見積もりの確度が低いため、完成ファイルを生成せず人手確認を依頼します。対象範囲と変更方針を具体化して再依頼してください。",
   "change-too-large": "生成された変更量が自動PRの変更予算を超えたため、自動PRを停止しました。対象を1つの目的・受入条件・変更領域に分割して再依頼してください。",

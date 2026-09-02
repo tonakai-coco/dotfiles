@@ -82,7 +82,7 @@ jobs:
       - name: Comment preflight estimate failure
         if: failure() && steps.estimate.outcome == 'failure'
         env:
-          AUTO_PR_REASON: estimate-failed
+          AUTO_PR_REASON: ${{ steps.estimate.outputs.reason_code || 'estimate-failed' }}
           AUTO_PR_INPUT_PATH: ${{ runner.temp }}/auto-pr-input.json
           GITHUB_TOKEN: ${{ github.token }}
         run: node .github/scripts/auto-pr-publish.mjs comment

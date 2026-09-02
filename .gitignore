@@ -1,3 +1,6 @@
 tags
 .claude/settings.local.json
 .DS_Store
+
+# ローカル専用のAPI検証資材と認証情報
+temp-test/
