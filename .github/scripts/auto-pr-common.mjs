@@ -31,6 +31,11 @@ export const CHANGE_SIZE_POLICY = Object.freeze({
     singleFileChangedLines: 400,
   }),
 });
+export const ESTIMATE_PLAN_STATUS = Object.freeze({
+  CHANGE_NEEDED: "change-needed",
+  NO_CHANGE: "no-change",
+  INSUFFICIENT_INSTRUCTIONS: "insufficient-instructions",
+});
 export const AUTO_PR_LABEL = "auto-pr";
 export const AUTO_PR_REQUEST_KEY_VERSION = 1;
 export const SAKURA_AI_DEFAULT_ENDPOINT = "https://api.ai.sakura.ad.jp/v1";
@@ -59,9 +64,22 @@ export class GithubApiError extends AutoPrError {
   }
 }
 
+export function getPreflightEstimateReasonCode(level) {
+  if (level === "no-change") {
+    return "preflight-no-change";
+  }
+  if (level === "split") {
+    return "preflight-too-large";
+  }
+  if (level === "manual-review") {
+    return "preflight-review-required";
+  }
+  return "";
+}
+
 export const PREFLIGHT_ESTIMATE_FAILURE_MESSAGES = Object.freeze({
   "estimate-plan-empty":
-    "Issue本文に具体的な変更内容がないため、変更計画を作成できませんでした。対象パスだけでなく、変更内容と受入条件を記載してください。",
+    "Issue本文から具体的な変更内容を判断できないと見積もられたため、変更計画を作成できませんでした。対象パスだけでなく、変更内容と受入条件を記載してください。",
 });
 
 export function getPreflightEstimateFailureReason(error) {
@@ -490,8 +508,30 @@ export function validateChangeEstimate(payload, targetPaths, repositoryRoot = ge
   if (!["high", "medium", "low"].includes(payload.confidence)) {
     throw new AutoPrError("estimate-confidence-invalid");
   }
-  if (!Array.isArray(payload.plannedChanges) || payload.plannedChanges.length === 0) {
+
+  const planStatus = payload.planStatus;
+  if (!Object.values(ESTIMATE_PLAN_STATUS).includes(planStatus)) {
+    throw new AutoPrError("estimate-plan-status-invalid");
+  }
+  if (!Array.isArray(payload.plannedChanges)) {
+    throw new AutoPrError("estimate-plan-invalid");
+  }
+
+  const hasPlannedChanges = payload.plannedChanges.length > 0;
+  if (
+    planStatus === ESTIMATE_PLAN_STATUS.INSUFFICIENT_INSTRUCTIONS &&
+    hasPlannedChanges
+  ) {
+    throw new AutoPrError("estimate-plan-invalid");
+  }
+  if (planStatus === ESTIMATE_PLAN_STATUS.INSUFFICIENT_INSTRUCTIONS) {
     throw new AutoPrError("estimate-plan-empty");
+  }
+  if (
+    (planStatus === ESTIMATE_PLAN_STATUS.NO_CHANGE && hasPlannedChanges) ||
+    (planStatus === ESTIMATE_PLAN_STATUS.CHANGE_NEEDED && !hasPlannedChanges)
+  ) {
+    throw new AutoPrError("estimate-plan-invalid");
   }
 
   const expected = new Set(expectedPaths);
@@ -577,20 +617,25 @@ export function validateChangeEstimate(payload, targetPaths, repositoryRoot = ge
     : reviewReasons.length > 0
       ? "review"
       : "normal";
-  const level = splitReasons.length > 0
-    ? "split"
-    : payload.confidence === "low"
-      ? "manual-review"
-      : "proceed";
-  const reasons = splitReasons.length > 0
-    ? splitReasons
-    : payload.confidence === "low"
-      ? ["low-confidence"]
-      : reviewReasons;
+  const level = planStatus === ESTIMATE_PLAN_STATUS.NO_CHANGE
+    ? "no-change"
+    : splitReasons.length > 0
+      ? "split"
+      : payload.confidence === "low"
+        ? "manual-review"
+        : "proceed";
+  const reasons = planStatus === ESTIMATE_PLAN_STATUS.NO_CHANGE
+    ? []
+    : splitReasons.length > 0
+      ? splitReasons
+      : payload.confidence === "low"
+        ? ["low-confidence"]
+        : reviewReasons;
 
   return {
     summary,
     confidence: payload.confidence,
+    planStatus,
     plannedChanges,
     metrics,
     assessment: {
@@ -638,6 +683,7 @@ const ESTIMATE_LEVEL_TEXT = Object.freeze({
   proceed: "生成可",
   split: "分割依頼",
   "manual-review": "人手確認",
+  "no-change": "変更不要",
 });
 
 const ESTIMATE_SIZE_TEXT = Object.freeze({
@@ -652,13 +698,20 @@ const ESTIMATE_CONFIDENCE_TEXT = Object.freeze({
   low: "低",
 });
 
+const ESTIMATE_PLAN_STATUS_TEXT = Object.freeze({
+  [ESTIMATE_PLAN_STATUS.CHANGE_NEEDED]: "変更あり",
+  [ESTIMATE_PLAN_STATUS.NO_CHANGE]: "変更不要",
+  [ESTIMATE_PLAN_STATUS.INSUFFICIENT_INSTRUCTIONS]: "指示不足",
+});
+
 export function formatEstimateSummary(estimate) {
   if (
     !isRecord(estimate) ||
     !isRecord(estimate.metrics) ||
     !isRecord(estimate.assessment) ||
     !Array.isArray(estimate.plannedChanges) ||
-    typeof estimate.confidence !== "string"
+    typeof estimate.confidence !== "string" ||
+    !ESTIMATE_PLAN_STATUS_TEXT[estimate.planStatus]
   ) {
     throw new AutoPrError("estimate-invalid");
   }
@@ -679,6 +732,7 @@ export function formatEstimateSummary(estimate) {
   }
 
   return [
+    `見積もり状態: ${ESTIMATE_PLAN_STATUS_TEXT[estimate.planStatus]}`,
     `事前見積もり: 最大${metrics.changedFiles}ファイル、最大${metrics.changedLines}行、${metrics.changeAreas}領域、1ファイル最大${metrics.maxFileChangedLines}行`,
     `見積もりスコア: ${assessment.sizeScore}`,
     `見積もり確度: ${ESTIMATE_CONFIDENCE_TEXT[estimate.confidence]}`,
@@ -1289,6 +1343,7 @@ const COMMENT_TEXT = Object.freeze({
   "publish-failed": "検証済み成果物の公開に失敗しました。自動PRを停止しました。",
   "estimate-failed": "生成前の変更計画を作成または検証できなかったため、自動PRを停止しました。",
   "estimate-plan-empty": PREFLIGHT_ESTIMATE_FAILURE_MESSAGES["estimate-plan-empty"],
+  "preflight-no-change": "事前見積もりで変更不要と判定されたため、完全なファイル生成とPull Request作成は実行していません。要件を変更する場合は、具体的な変更内容を追記して再依頼してください。",
   "preflight-too-large": "生成前の変更量見積もりが自動PRの変更予算を超えたため、完成ファイルを生成せず停止しました。対象を1つの目的、受入条件、変更領域に分割して再依頼してください。",
   "preflight-review-required": "生成前の変更量見積もりの確度が低いため、完成ファイルを生成せず人手確認を依頼します。対象範囲と変更方針を具体化して再依頼してください。",
   "change-too-large": "生成された変更量が自動PRの変更予算を超えたため、自動PRを停止しました。対象を1つの目的・受入条件・変更領域に分割して再依頼してください。",
@@ -1298,7 +1353,14 @@ const COMMENT_TEXT = Object.freeze({
   "internal-error": "自動PR処理で入力または内部状態を確認できないため、安全側に停止しました。",
 });
 
+const PREFLIGHT_ESTIMATE_COMMENT_REASONS = new Set([
+  "preflight-no-change",
+  "preflight-too-large",
+  "preflight-review-required",
+]);
+
 const IDEMPOTENT_COMMENT_REASONS = new Set([
+  "preflight-no-change",
   "preflight-too-large",
   "preflight-review-required",
   "change-too-large",
@@ -1360,11 +1422,10 @@ export function createComment(reason, details = {}) {
   const text = COMMENT_TEXT[reason] || COMMENT_TEXT["internal-error"];
   let body = `<!-- sakura-auto-pr:${reason} -->\n${text}`;
 
-  if (
-    (reason === "preflight-too-large" || reason === "preflight-review-required") &&
-    isRecord(details.estimate)
-  ) {
-    body += `\n\n${details.estimate.summary}\n\n${formatEstimateSummary(details.estimate)}\n\n変更計画:\n${formatEstimatePlan(details.estimate)}`;
+  if (PREFLIGHT_ESTIMATE_COMMENT_REASONS.has(reason) && isRecord(details.estimate)) {
+    const plan =
+      reason === "preflight-no-change" ? "- 変更なし" : formatEstimatePlan(details.estimate);
+    body += `\n\n${details.estimate.summary}\n\n${formatEstimateSummary(details.estimate)}\n\n変更計画:\n${plan}`;
   }
 
   if ((reason === "dry-run" || reason === "published") && Array.isArray(details.paths)) {

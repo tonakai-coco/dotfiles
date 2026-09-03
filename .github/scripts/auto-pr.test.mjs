@@ -22,6 +22,7 @@ import {
   formatPreflightEstimateFailure,
   getChangeMetrics,
   getAutoPrRequestMarker,
+  getPreflightEstimateReasonCode,
   getPreflightEstimateFailureReason,
   hasExistingAutoPrRequest,
   hasMatchingAutoPrRequestComment,
@@ -289,6 +290,7 @@ test("validates a preflight plan and derives conservative estimate metrics", () 
   const estimate = validateChangeEstimate(
     {
       summary: "設定と検証手順を更新する",
+      planStatus: "change-needed",
       confidence: "medium",
       plannedChanges: [
         {
@@ -324,6 +326,7 @@ test("stops before generation when the preflight upper estimate reaches the spli
   const estimate = validateChangeEstimate(
     {
       summary: "大規模な設定移行を行う",
+      planStatus: "change-needed",
       confidence: "high",
       plannedChanges: [
         {
@@ -346,6 +349,7 @@ test("requires manual review when the preflight estimate has low confidence", ()
   const estimate = validateChangeEstimate(
     {
       summary: "対象範囲の依存関係を確認できない",
+      planStatus: "change-needed",
       confidence: "low",
       plannedChanges: [
         {
@@ -361,6 +365,92 @@ test("requires manual review when the preflight estimate has low confidence", ()
   assert.equal(estimate.assessment.level, "manual-review");
   assert.equal(estimate.assessment.estimatedLevel, "normal");
   assert.deepEqual(estimate.assessment.reasons, ["low-confidence"]);
+});
+
+test("accepts an explicit no-change estimate without generating a plan", () => {
+  const estimate = validateChangeEstimate(
+    {
+      summary: "対象ファイルはIssueの要件を満たしている",
+      planStatus: "no-change",
+      confidence: "high",
+      plannedChanges: [],
+    },
+    ["Makefile"],
+  );
+
+  assert.equal(estimate.planStatus, "no-change");
+  assert.deepEqual(estimate.metrics, {
+    changedFiles: 0,
+    changedLines: 0,
+    changeAreas: 0,
+    maxFileChangedLines: 0,
+  });
+  assert.deepEqual(estimate.assessment, {
+    level: "no-change",
+    estimatedLevel: "normal",
+    reasons: [],
+    sizeScore: 0,
+  });
+
+  const comment = createComment("preflight-no-change", { estimate });
+  assert.match(comment, /事前見積もりで変更不要と判定/u);
+  assert.match(comment, /完全なファイル生成とPull Request作成は実行していません/u);
+  assert.match(comment, /見積もり状態: 変更不要/u);
+  assert.match(comment, /変更計画:\n- 変更なし/u);
+});
+
+test("reports insufficient instructions only when the estimator marks them explicitly", () => {
+  assert.throws(
+    () =>
+      validateChangeEstimate(
+        {
+          summary: "Issue本文から具体的な変更内容を判断できない",
+          planStatus: "insufficient-instructions",
+          confidence: "low",
+          plannedChanges: [],
+        },
+        ["Makefile"],
+      ),
+    /estimate-plan-empty/,
+  );
+});
+
+test("requires an explicit preflight plan status", () => {
+  assert.throws(
+    () =>
+      validateChangeEstimate(
+        {
+          summary: "変更内容を見積もる",
+          confidence: "high",
+          plannedChanges: [],
+        },
+        ["Makefile"],
+      ),
+    /estimate-plan-status-invalid/,
+  );
+});
+
+test("rejects a change-needed estimate without a plan as invalid", () => {
+  assert.throws(
+    () =>
+      validateChangeEstimate(
+        {
+          summary: "変更内容を見積もる",
+          planStatus: "change-needed",
+          confidence: "high",
+          plannedChanges: [],
+        },
+        ["Makefile"],
+      ),
+    /estimate-plan-invalid/,
+  );
+});
+
+test("maps each preflight estimate outcome to its gate reason", () => {
+  assert.equal(getPreflightEstimateReasonCode("proceed"), "");
+  assert.equal(getPreflightEstimateReasonCode("no-change"), "preflight-no-change");
+  assert.equal(getPreflightEstimateReasonCode("split"), "preflight-too-large");
+  assert.equal(getPreflightEstimateReasonCode("manual-review"), "preflight-review-required");
 });
 
 test("explains when the Issue has no concrete change plan", () => {
@@ -389,6 +479,7 @@ test("rejects a preflight plan that contains an unrequested path", () => {
       validateChangeEstimate(
         {
           summary: "対象外のファイルも変更する",
+          planStatus: "change-needed",
           confidence: "high",
           plannedChanges: [
             {
@@ -408,6 +499,7 @@ test("formats a bounded preflight estimate summary", () => {
   const estimate = validateChangeEstimate(
     {
       summary: "設定と検証手順を更新する",
+      planStatus: "change-needed",
       confidence: "medium",
       plannedChanges: [
         {
@@ -438,6 +530,7 @@ test("formats a preflight split comment with the plan and without generated cont
   const estimate = validateChangeEstimate(
     {
       summary: "大規模な設定移行を行う",
+      planStatus: "change-needed",
       confidence: "high",
       plannedChanges: [
         {
@@ -467,6 +560,7 @@ test("validates an estimate document before passing it between workflow jobs", (
     targetPaths: ["Makefile"],
     estimate: {
       summary: "検証用ターゲットを更新する",
+      planStatus: "change-needed",
       confidence: "high",
       plannedChanges: [
         {
