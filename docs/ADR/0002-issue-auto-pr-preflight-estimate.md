@@ -24,6 +24,7 @@ Issue入力の検証後、完全なファイル生成の前に、軽量な事前
 ```json
 {
   "summary": "変更内容の短い要約",
+  "planStatus": "change-needed",
   "confidence": "high",
   "plannedChanges": [
     {
@@ -37,17 +38,21 @@ Issue入力の検証後、完全なファイル生成の前に、軽量な事前
 
 事前見積もりの応答には、ソースコード、完全なファイル内容、パッチ、差分を含めない。
 
+`planStatus`は、`change-needed`、`no-change`、`insufficient-instructions`のいずれかとする。`change-needed`の場合は変更が必要なパスを`plannedChanges`に含める。`no-change`の場合は対象パスがすでに要件を満たしているため、`plannedChanges`を空にする。`insufficient-instructions`の場合はIssue本文から具体的な変更内容を判断できないため、`plannedChanges`を空にする。この状態は変更計画として採用せず、Issueへ具体的な変更内容と受入条件の追記を依頼する。
+
 `estimatedChangedLinesMax`は各ファイルの変更行数の保守的な上限とし、正確な人手工数を表す値とは扱わない。
 
 事前見積もりの判定は次のとおりとする。
 
 | 判定 | 条件 | 処理 |
 | --- | --- | --- |
-| 生成可 | 分割条件に該当せず、見積もり確度が低ではない | 完全なファイル生成へ進む |
-| 分割依頼 | 分割閾値以上の見積もりが1つでもある | 完全なファイル生成を行わず、Issueへ分割を依頼する |
-| 人手確認 | 見積もり確度が低である | 完全なファイル生成を行わず、人手確認を依頼する |
+| 生成可 | `planStatus`が`change-needed`、分割条件に該当せず、見積もり確度が低ではない | 完全なファイル生成へ進む |
+| 変更不要 | `planStatus`が`no-change` | 完全なファイル生成を行わず、変更不要としてIssueへ通知する |
+| 分割依頼 | `planStatus`が`change-needed`で、分割閾値以上の見積もりが1つでもある | 完全なファイル生成を行わず、Issueへ分割を依頼する |
+| 人手確認 | `planStatus`が`change-needed`で、見積もり確度が低である | 完全なファイル生成を行わず、人手確認を依頼する |
+| 指示不足 | `planStatus`が`insufficient-instructions` | 完全なファイル生成を行わず、Issueへ具体的な変更内容の追記を依頼する |
 
-分割依頼または人手確認になった場合、完全なファイル生成、`make`検証、branch作成、commit、push、Pull Request作成を行わない。
+分割依頼、人手確認、変更不要、指示不足になった場合、完全なファイル生成、`make`検証、branch作成、commit、push、Pull Request作成を行わない。
 
 分割閾値には達しないものの要確認の目安に達した場合は、`見積もり規模: 要確認`として記録する。これは情報提供であり、見積もり確度が低くない限り完全なファイル生成へ進む。
 

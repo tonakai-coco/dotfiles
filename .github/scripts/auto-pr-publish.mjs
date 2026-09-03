@@ -372,7 +372,9 @@ async function main() {
     }
     const context = await readEventContext();
     const details =
-      reason === "preflight-too-large" || reason === "preflight-review-required"
+      reason === "preflight-no-change" ||
+      reason === "preflight-too-large" ||
+      reason === "preflight-review-required"
         ? { estimate: await readEstimateForEvent(context) }
         : {};
     await postComment(reason, details);
