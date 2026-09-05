@@ -69,20 +69,42 @@ make unlink    # リンクを削除
 | AutoHotkey | `~/.config/autohotkey` | Windows |
 | ubuntu_nvim | `~/.config/ubuntu_nvim` | Linux |
 
+## AIツール設定の管理
+
+**AIツール（Claude、Codex、Copilot）の設定は、これまでの自動シンボリックリンク管理から除外され、各端末で手動管理するよう変更しました。**
+
+- `ai/` ディレクトリに各ツールのサンプル設定ファイルが残っています。
+- 必要な設定は `ai/` 配下から自分のホームディレクトリ（例: `~/.codex/`, `~/.claude/`, `~/.copilot/`）へ手動でコピーしてください。
+- 既に作成されているシンボリックリンクは自動で通常ファイルに変換されません。既存リンクを削除し、手動でコピーしたファイルに置き換える必要があります。
+- 既存の AI 設定リンクを通常ファイルへ移行する手順:
+  1. `make unlink` で現在のシンボリックリンクを削除（AI 設定は対象外ですが、スキル関連の古いリンクは自動でクリーンアップされます）。
+  2. `cp -r ai/claude/* ~/.claude/` など、対象ツールのディレクトリへコピー。
+  3. 必要に応じて設定ファイルを編集し、動作を確認してください。
+
 ## ディレクトリ構成
 
 ```
 dotfiles/
 ├── Makefile          # シンボリックリンク管理
 ├── README.md
-└── config/
-    ├── nvim/         # Neovim 設定
-    ├── wezterm/      # WezTerm 設定
-    ├── fish/         # fish shell 設定
-    ├── tmux/         # tmux 設定
-    ├── aerospace/    # AeroSpace 設定 (macOS)
-    ├── karabiner/    # Karabiner 設定 (macOS)
-    ├── powershell/   # PowerShell 設定 (Windows)
-    ├── autohotkey/   # AutoHotkey 設定 (Windows)
-    └── ubuntu_nvim/  # Ubuntu用 Neovim 設定
+├── config/
+│   ├── nvim/         # Neovim 設定
+│   ├── wezterm/      # WezTerm 設定
+│   ├── fish/         # fish shell 設定
+│   ├── tmux/         # tmux 設定
+│   ├── aerospace/    # AeroSpace 設定 (macOS)
+│   ├── karabiner/    # Karabiner 設定 (macOS)
+│   ├── powershell/   # PowerShell 設定 (Windows)
+│   ├── autohotkey/   # AutoHotkey 設定 (Windows)
+│   └── ubuntu_nvim/  # Ubuntu用 Neovim 設定
+├── ai/
+│   ├── claude/
+│   │   ├── settings.json
+│   │   └── statusline-command.sh
+│   ├── codex/
+│   │   └── hooks.json
+│   └── copilot/
+│       ├── agents/
+│       └── hooks/notify.json
+└── ...
 ```

@@ -12,7 +12,7 @@
 # On Windows, derive Git for Windows bash from git --exec-path
 # (PATH may only have WSL's bash.exe, not Git's)
 ifdef ComSpec
-SHELL := $(subst mingw64/libexec/git-core,bin/bash.exe,$(subst \,/,$(shell git --exec-path 2>nul)))
+SHELL := $(subst mingw64/libexec/git-core,bin/bash.exe,$(subst \\,/,$(shell git --exec-path 2>nul)))
 else
 SHELL := /bin/bash
 endif
@@ -128,9 +128,7 @@ COLOR_CYAN := \033[36m
         _ensure-xdg-config _create-link _remove-link \
         _link-fish-files _unlink-fish-files \
         _link-karabiner-files _unlink-karabiner-files \
-        _cleanup-migrated-ai-skill-links \
-        _link-ai-configs _unlink-ai-configs \
-        _link-claude-configs _unlink-claude-configs
+        _cleanup-migrated-ai-skill-links
 
 # -----------------------------------------------------------------------------
 # Default target
@@ -262,7 +260,7 @@ ifneq ($(DETECTED_OS),windows)
 				else \
 					echo -e "  $(COLOR_RED)[NONE]$(COLOR_RESET) $$target"; \
 				fi; \
-			done; \
+				done; \
 		fi; \
 	done
 	$(ECHO) ""
@@ -274,33 +272,6 @@ ifneq ($(DETECTED_OS),windows)
 			echo -e "  $(COLOR_GREEN)[LINK]$(COLOR_RESET) $$target -> $$link_dest"; \
 		elif [ -e "$$target" ]; then \
 			echo -e "  $(COLOR_YELLOW)[FILE]$(COLOR_RESET) $$target (regular file)"; \
-		else \
-			echo -e "  $(COLOR_RED)[NONE]$(COLOR_RESET) $$target (not found)"; \
-		fi; \
-	done
-endif
-	$(ECHO) ""
-	$(ECHO) "$(COLOR_CYAN)[File-level: AI tools]$(COLOR_RESET)"
-	$(Q)for target in \
-		"$(HOME)/.codex/hooks.json"; do \
-		if [ -L "$$target" ]; then \
-			link_dest=$$(readlink "$$target"); \
-			echo -e "  $(COLOR_GREEN)[LINK]$(COLOR_RESET) $$target -> $$link_dest"; \
-		elif [ -e "$$target" ]; then \
-			echo -e "  $(COLOR_YELLOW)[FILE]$(COLOR_RESET) $$target (regular file/directory)"; \
-		else \
-			echo -e "  $(COLOR_RED)[NONE]$(COLOR_RESET) $$target (not found)"; \
-		fi; \
-	done
-ifeq ($(DETECTED_OS),windows)
-	$(Q)for target in \
-		"$(HOME)/.copilot/agents" \
-		"$(HOME)/.copilot/hooks/notify.json"; do \
-		if [ -L "$$target" ]; then \
-			link_dest=$$(readlink "$$target"); \
-			echo -e "  $(COLOR_GREEN)[LINK]$(COLOR_RESET) $$target -> $$link_dest"; \
-		elif [ -e "$$target" ]; then \
-			echo -e "  $(COLOR_YELLOW)[FILE]$(COLOR_RESET) $$target (regular file/directory)"; \
 		else \
 			echo -e "  $(COLOR_RED)[NONE]$(COLOR_RESET) $$target (not found)"; \
 		fi; \
@@ -335,6 +306,11 @@ else
 		fi; \
 	done
 endif
+	$(ECHO) ""
+	$(ECHO) "$(COLOR_CYAN)AI tool configurations are now managed manually as regular files.$(COLOR_RESET)"
+	$(ECHO) "Please copy the desired configuration files from the 'ai/' directory in this repository"
+	$(ECHO) "to the appropriate locations in your home directory (e.g., ~/.codex/, ~/.claude/, ~/.copilot/)."
+	$(ECHO) "Existing symlinks, if any, must be removed and replaced with the copied files."
 
 # -----------------------------------------------------------------------------
 # Main link target (auto-detect OS)
@@ -382,10 +358,8 @@ link-macos: _ensure-xdg-config
 	$(ECHO) "$(COLOR_CYAN)[File-level: karabiner]$(COLOR_RESET)"
 	$(Q)$(MAKE) _link-karabiner-files FORCE=$(FORCE)
 	$(ECHO) ""
-	$(ECHO) "$(COLOR_CYAN)[File-level: AI tools]$(COLOR_RESET)"
-	$(Q)$(MAKE) _link-ai-configs FORCE=$(FORCE)
-	$(ECHO) ""
 	$(ECHO) "$(COLOR_GREEN)macOS: Done$(COLOR_RESET)"
+	$(Q)$(MAKE) _cleanup-migrated-ai-skill-links
 
 # -----------------------------------------------------------------------------
 # Linux link creation
@@ -401,10 +375,8 @@ link-linux: _ensure-xdg-config
 			FORCE=$(FORCE); \
 	done
 	$(ECHO) ""
-	$(ECHO) "$(COLOR_CYAN)[File-level: AI tools]$(COLOR_RESET)"
-	$(Q)$(MAKE) _link-ai-configs FORCE=$(FORCE)
-	$(ECHO) ""
 	$(ECHO) "$(COLOR_GREEN)Linux: Done$(COLOR_RESET)"
+	$(Q)$(MAKE) _cleanup-migrated-ai-skill-links
 
 # -----------------------------------------------------------------------------
 # Windows link creation
@@ -428,14 +400,13 @@ link-windows: _ensure-xdg-config
 		DEST="$(LOCALAPPDATA)/nvim" \
 		FORCE=$(FORCE)
 	$(ECHO) ""
-	$(ECHO) "$(COLOR_CYAN)[File-level: AI tools]$(COLOR_RESET)"
-	$(Q)$(MAKE) _link-ai-configs FORCE=$(FORCE)
-	$(ECHO) ""
 	$(ECHO) "$(COLOR_GREEN)Windows: Done$(COLOR_RESET)"
+	$(Q)$(MAKE) _cleanup-migrated-ai-skill-links
 
 # -----------------------------------------------------------------------------
 # Unlink targets
 # -----------------------------------------------------------------------------
+
 unlink:
 ifeq ($(DETECTED_OS),macos)
 	$(MAKE) unlink-macos
@@ -455,7 +426,7 @@ unlink-macos:
 	done
 	$(Q)$(MAKE) _unlink-fish-files
 	$(Q)$(MAKE) _unlink-karabiner-files
-	$(Q)$(MAKE) _unlink-ai-configs
+	$(Q)$(MAKE) _cleanup-migrated-ai-skill-links
 	$(ECHO) "$(COLOR_GREEN)macOS: Unlink complete$(COLOR_RESET)"
 
 unlink-linux:
@@ -463,7 +434,7 @@ unlink-linux:
 	$(Q)for config in $(COMMON_CONFIGS) $(LINUX_CONFIGS); do \
 		$(MAKE) _remove-link DEST="$(XDG_CONFIG_HOME)/$$config"; \
 	done
-	$(Q)$(MAKE) _unlink-ai-configs
+	$(Q)$(MAKE) _cleanup-migrated-ai-skill-links
 	$(ECHO) "$(COLOR_GREEN)Linux: Unlink complete$(COLOR_RESET)"
 
 unlink-windows:
@@ -472,7 +443,7 @@ unlink-windows:
 		$(MAKE) _remove-link DEST="$(XDG_CONFIG_HOME)/$$config"; \
 	done
 	$(Q)$(MAKE) _remove-link DEST="$(LOCALAPPDATA)/nvim"
-	$(Q)$(MAKE) _unlink-ai-configs
+	$(Q)$(MAKE) _cleanup-migrated-ai-skill-links
 	$(ECHO) "$(COLOR_GREEN)Windows: Unlink complete$(COLOR_RESET)"
 
 # -----------------------------------------------------------------------------
@@ -611,62 +582,6 @@ _unlink-karabiner-files:
 	done
 
 # -----------------------------------------------------------------------------
-# Internal: Create AI tool configuration symlinks (home-dir targets, all OS)
-# -----------------------------------------------------------------------------
-# Targets (all OS):
-#   ~/.codex/hooks.json           -> dotfiles/ai/codex/hooks.json     (file, macOS/Linux)
-#   ~/.codex/hooks.json           -> dotfiles/ai/codex/windows/hooks.json (file, Windows)
-# Targets (Windows only):
-#   ~/.copilot/agents             -> dotfiles/ai/copilot/agents       (directory)
-#   ~/.copilot/hooks/notify.json  -> dotfiles/ai/copilot/hooks/notify.json (file)
-_link-ai-configs:
-	@# Remove symlinks from the pre-ai-plugins skill layout.
-	$(Q)$(MAKE) _cleanup-migrated-ai-skill-links
-ifeq ($(DETECTED_OS),windows)
-	@# ~/.codex/hooks.json -> dotfiles/ai/codex/windows/hooks.json
-	$(Q)mkdir -p "$(HOME)/.codex"
-	$(Q)$(MAKE) _create-link \
-		SRC="$(AI_DIR)/codex/windows/hooks.json" \
-		DEST="$(HOME)/.codex/hooks.json" \
-		FORCE=$(FORCE)
-else
-	@# ~/.codex/hooks.json -> dotfiles/ai/codex/hooks.json
-	$(Q)mkdir -p "$(HOME)/.codex"
-	$(Q)$(MAKE) _create-link \
-		SRC="$(AI_DIR)/codex/hooks.json" \
-		DEST="$(HOME)/.codex/hooks.json" \
-		FORCE=$(FORCE)
-endif
-ifeq ($(DETECTED_OS),windows)
-	@# ~/.copilot/agents -> dotfiles/ai/copilot/agents
-	$(Q)mkdir -p "$(HOME)/.copilot"
-	$(Q)$(MAKE) _create-link \
-		SRC="$(AI_DIR)/copilot/agents" \
-		DEST="$(HOME)/.copilot/agents" \
-		FORCE=$(FORCE)
-	@# ~/.copilot/hooks/notify.json -> dotfiles/ai/copilot/hooks/notify.json
-	$(Q)mkdir -p "$(HOME)/.copilot/hooks"
-	$(Q)$(MAKE) _create-link \
-		SRC="$(AI_DIR)/copilot/hooks/notify.json" \
-		DEST="$(HOME)/.copilot/hooks/notify.json" \
-		FORCE=$(FORCE)
-endif
-	@# ~/.claude/settings.json, statusline-command.sh -> dotfiles/ai/claude/
-	$(Q)$(MAKE) _link-claude-configs FORCE=$(FORCE)
-
-# -----------------------------------------------------------------------------
-# Internal: Remove AI tool symlinks
-# -----------------------------------------------------------------------------
-_unlink-ai-configs:
-	$(Q)$(MAKE) _cleanup-migrated-ai-skill-links
-	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.codex/hooks.json"
-ifeq ($(DETECTED_OS),windows)
-	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.copilot/agents"
-	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.copilot/hooks/notify.json"
-endif
-	$(Q)$(MAKE) _unlink-claude-configs
-
-# -----------------------------------------------------------------------------
 # Internal: Remove skill symlinks from the pre-ai-plugins layout
 # -----------------------------------------------------------------------------
 # Only remove links whose recorded targets are inside the deleted skill paths.
@@ -684,49 +599,6 @@ _cleanup-migrated-ai-skill-links:
 				;; \
 		esac; \
 	done
-
-# -----------------------------------------------------------------------------
-# Internal: Create Claude config file symlinks
-# -----------------------------------------------------------------------------
-# macOS/Linux:
-#   ~/.claude/settings.json            -> dotfiles/ai/claude/settings.json
-#   ~/.claude/statusline-command.sh    -> dotfiles/ai/claude/statusline-command.sh
-# Windows:
-#   ~/.claude/settings.json            -> dotfiles/ai/claude/windows/settings.json
-#   ~/.claude/statusline-command.ps1   -> dotfiles/ai/claude/windows/statusline-command.ps1
-_link-claude-configs:
-	$(Q)mkdir -p "$(HOME)/.claude"
-ifeq ($(DETECTED_OS),windows)
-	$(Q)$(MAKE) _create-link \
-		SRC="$(AI_DIR)/claude/windows/settings.json" \
-		DEST="$(HOME)/.claude/settings.json" \
-		FORCE=$(FORCE)
-	$(Q)$(MAKE) _create-link \
-		SRC="$(AI_DIR)/claude/windows/statusline-command.ps1" \
-		DEST="$(HOME)/.claude/statusline-command.ps1" \
-		FORCE=$(FORCE)
-else
-	$(Q)$(MAKE) _create-link \
-		SRC="$(AI_DIR)/claude/settings.json" \
-		DEST="$(HOME)/.claude/settings.json" \
-		FORCE=$(FORCE)
-	$(Q)$(MAKE) _create-link \
-		SRC="$(AI_DIR)/claude/statusline-command.sh" \
-		DEST="$(HOME)/.claude/statusline-command.sh" \
-		FORCE=$(FORCE)
-endif
-
-# -----------------------------------------------------------------------------
-# Internal: Remove Claude config file symlinks
-# -----------------------------------------------------------------------------
-_unlink-claude-configs:
-ifeq ($(DETECTED_OS),windows)
-	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.claude/settings.json"
-	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.claude/statusline-command.ps1"
-else
-	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.claude/settings.json"
-	$(Q)$(MAKE) _remove-link DEST="$(HOME)/.claude/statusline-command.sh"
-endif
 
 # -----------------------------------------------------------------------------
 # Install BurntToast PowerShell module (Windows only)
