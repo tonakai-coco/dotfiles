@@ -12,7 +12,7 @@
 # On Windows, derive Git for Windows bash from git --exec-path
 # (PATH may only have WSL's bash.exe, not Git's)
 ifdef ComSpec
-SHELL := $(subst mingw64/libexec/git-core,bin/bash.exe,$(subst \\,/,$(shell git --exec-path 2>nul)))
+SHELL := $(subst mingw64/libexec/git-core,bin/bash.exe,$(subst \,/,$(shell git --exec-path 2>nul)))
 else
 SHELL := /bin/bash
 endif
@@ -272,35 +272,6 @@ ifneq ($(DETECTED_OS),windows)
 			echo -e "  $(COLOR_GREEN)[LINK]$(COLOR_RESET) $$target -> $$link_dest"; \
 		elif [ -e "$$target" ]; then \
 			echo -e "  $(COLOR_YELLOW)[FILE]$(COLOR_RESET) $$target (regular file)"; \
-		else \
-			echo -e "  $(COLOR_RED)[NONE]$(COLOR_RESET) $$target (not found)"; \
-		fi; \
-	done
-endif
-	$(ECHO) ""
-	$(ECHO) "$(COLOR_CYAN)[File-level: Claude configs]$(COLOR_RESET)"
-ifeq ($(DETECTED_OS),windows)
-	$(Q)for target in \
-		"$(HOME)/.claude/settings.json" \
-		"$(HOME)/.claude/statusline-command.ps1"; do \
-		if [ -L "$$target" ]; then \
-			link_dest=$$(readlink "$$target"); \
-			echo -e "  $(COLOR_GREEN)[LINK]$(COLOR_RESET) $$target -> $$link_dest"; \
-		elif [ -e "$$target" ]; then \
-			echo -e "  $(COLOR_YELLOW)[FILE]$(COLOR_RESET) $$target (regular file/directory)"; \
-		else \
-			echo -e "  $(COLOR_RED)[NONE]$(COLOR_RESET) $$target (not found)"; \
-		fi; \
-	done
-else
-	$(Q)for target in \
-		"$(HOME)/.claude/settings.json" \
-		"$(HOME)/.claude/statusline-command.sh"; do \
-		if [ -L "$$target" ]; then \
-			link_dest=$$(readlink "$$target"); \
-			echo -e "  $(COLOR_GREEN)[LINK]$(COLOR_RESET) $$target -> $$link_dest"; \
-		elif [ -e "$$target" ]; then \
-			echo -e "  $(COLOR_YELLOW)[FILE]$(COLOR_RESET) $$target (regular file/directory)"; \
 		else \
 			echo -e "  $(COLOR_RED)[NONE]$(COLOR_RESET) $$target (not found)"; \
 		fi; \
