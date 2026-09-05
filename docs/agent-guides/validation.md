@@ -40,3 +40,11 @@
 - 対象: `config/tmux/`
 - リロード: `tmux source-file ~/.config/tmux/tmux.conf`
 - セッションがなければ未実施理由を記録する。
+
+## Dry‑run verification
+
+- `dry-run` mode only simulates the workflow.
+- No `git commit` is executed.
+- No `git push` is performed.
+- No Pull Request is created on GitHub.
+- Use this to confirm validation steps run without side effects.
