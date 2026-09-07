@@ -69,20 +69,46 @@ make unlink    # リンクを削除
 | AutoHotkey | `~/.config/autohotkey` | Windows |
 | ubuntu_nvim | `~/.config/ubuntu_nvim` | Linux |
 
+## AIツール設定の管理
+
+**AIツール（Claude、Codex、Copilot）の設定は、これまでの自動シンボリックリンク管理から除外され、各端末で手動管理するよう変更しました。**
+
+- `ai/` ディレクトリに各ツールのサンプル設定ファイルが残っています。
+- 必要な設定は `ai/` 配下から自分のホームディレクトリ（例: `~/.codex/`, `~/.claude/`, `~/.copilot/`）へ手動でコピーしてください。
+- 既に作成されているシンボリックリンクは自動で通常ファイルに変換されません。既存リンクを削除し、手動でコピーしたファイルに置き換える必要があります。
+- 既存の AI 設定リンクを通常ファイルへ移行する手順（対象ごとに実施）:
+  1. 対象がシンボリックリンクであることと、その参照先を確認します。参照先が存在しない場合は、復元する内容を確保してから進めてください。
+  2. リンク先の現在の内容を、ホーム内の別のバックアップ先へ実体としてコピーします。ファイルは内容と実行権限、ディレクトリは配下の内容も保持し、バックアップを読み戻して確認します。
+  3. 確認した対象のシンボリックリンクだけを削除します。リンク先の実体は削除しません。`make unlink` は他の設定リンクも削除するため、この移行には使いません。
+  4. バックアップから元の配置先へ通常ファイル（ディレクトリの場合は通常ディレクトリ）として復元し、シンボリックリンクでないこと、内容と必要な実行権限が一致することを確認します。
+  5. ツールの動作を確認し、バックアップは確認が済むまで保持してください。
+
+新規配置では対象OSのファイルを選び、既存設定を上書きせず個別にコピーしてください。ClaudeとCodexはmacOS・Linux用がそれぞれ `ai/claude/` と `ai/codex/`、Windows用が各ディレクトリの `windows/` 配下にあります。Copilotの設定はWindows用です。既存リンクの移行ではサンプルへ戻さず、上記の手順で現在の内容を保持してください。
+
 ## ディレクトリ構成
 
 ```
 dotfiles/
 ├── Makefile          # シンボリックリンク管理
 ├── README.md
-└── config/
-    ├── nvim/         # Neovim 設定
-    ├── wezterm/      # WezTerm 設定
-    ├── fish/         # fish shell 設定
-    ├── tmux/         # tmux 設定
-    ├── aerospace/    # AeroSpace 設定 (macOS)
-    ├── karabiner/    # Karabiner 設定 (macOS)
-    ├── powershell/   # PowerShell 設定 (Windows)
-    ├── autohotkey/   # AutoHotkey 設定 (Windows)
-    └── ubuntu_nvim/  # Ubuntu用 Neovim 設定
+├── config/
+│   ├── nvim/         # Neovim 設定
+│   ├── wezterm/      # WezTerm 設定
+│   ├── fish/         # fish shell 設定
+│   ├── tmux/         # tmux 設定
+│   ├── aerospace/    # AeroSpace 設定 (macOS)
+│   ├── karabiner/    # Karabiner 設定 (macOS)
+│   ├── powershell/   # PowerShell 設定 (Windows)
+│   ├── autohotkey/   # AutoHotkey 設定 (Windows)
+│   └── ubuntu_nvim/  # Ubuntu用 Neovim 設定
+├── ai/
+│   ├── claude/
+│   │   ├── settings.json
+│   │   └── statusline-command.sh
+│   ├── codex/
+│   │   └── hooks.json
+│   └── copilot/
+│       ├── agents/
+│       └── hooks/notify.json
+└── ...
 ```
