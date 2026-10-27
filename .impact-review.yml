@@ -1,0 +1,12 @@
+paths:
+  include: ["**"]
+  ignore:
+    - "docs/plans/**"
+    - "generated/**"
+limits:
+  files: 30
+  callers: 10
+  max_chars: 80000
+  must_important: 10
+  nit: 5
+  note: 3
