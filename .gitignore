@@ -1,6 +1,8 @@
 tags
 .claude/settings.local.json
 .DS_Store
+__pycache__/
+*.py[cod]
 
 # ローカル専用のAPI検証資材と認証情報
 temp-test/

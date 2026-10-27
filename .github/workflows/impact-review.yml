@@ -1,0 +1,68 @@
+name: Impact Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number
+        required: true
+        type: number
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: impact-review-${{ github.repository }}-${{ github.event.pull_request.number || inputs.pr_number }}
+  cancel-in-progress: false
+
+jobs:
+  review:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (!github.event.pull_request.draft &&
+       github.event.pull_request.user.type != 'Bot' &&
+       github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true
+    steps:
+      - name: Resolve manual PR base
+        if: github.event_name == 'workflow_dispatch'
+        id: manual-base
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: |
+          [[ "$PR_NUMBER" =~ ^[1-9][0-9]*$ ]] || exit 1
+          sha=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq '.base.sha')
+          [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || exit 1
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+      # Execute only trusted base code. Head contents are read via Git, never checked out.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.manual-base.outputs.sha || github.event.pull_request.base.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install CLI dependency
+        run: python -m pip install -r tools/impact-review/requirements.txt
+      - name: Review
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          IMPACT_REVIEW_LLM_API_KEY: ${{ secrets.IMPACT_REVIEW_LLM_API_KEY }}
+          IMPACT_REVIEW_LLM_BASE_URL: ${{ vars.IMPACT_REVIEW_LLM_BASE_URL || secrets.IMPACT_REVIEW_LLM_BASE_URL }}
+          IMPACT_REVIEW_LLM_MODEL: ${{ vars.IMPACT_REVIEW_LLM_MODEL || secrets.IMPACT_REVIEW_LLM_MODEL }}
+          IMPACT_REVIEW_LLM_TIMEOUT_SECONDS: ${{ vars.IMPACT_REVIEW_LLM_TIMEOUT_SECONDS || '420' }}
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+          # Git fetch authentication without persisting a token in .git/config.
+          GIT_CONFIG_COUNT: '1'
+          GIT_CONFIG_KEY_0: credential.helper
+          GIT_CONFIG_VALUE_0: '!f() { echo username=x-access-token; echo "password=$GITHUB_TOKEN"; }; f'
+        # タイムアウトと HTTP エラーは再試行しない。接続が応答完了前に切れたときだけ、CLI がもう 1 回呼ぶ。
+        # 既定 420 秒。2 回目が長引くと job の 10 分で打ち切られる。
+        run: python tools/impact-review/cli.py --pr "$PR_NUMBER" --fetch
