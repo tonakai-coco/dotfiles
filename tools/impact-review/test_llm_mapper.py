@@ -7,7 +7,8 @@ from unittest.mock import MagicMock, patch
 import http.client
 from client import (
     ApiConnectionError, ApiError, LlmClient, LlmContentJsonError, ResponseJsonError,
-    extract_json_object_text, llm_timeout_seconds, request, sanitize_finish_reason)
+    REVIEW_SYSTEM, extract_json_object_text, llm_timeout_seconds, request,
+    sanitize_finish_reason, verify_timeout_seconds)
 from core import Change, Config, Finding, Review
 from mapper import Mapper
 from fixtures import review
@@ -59,6 +60,33 @@ class LlmMapperTests(unittest.TestCase):
             self.assertEqual(http.call_args.args[0], "https://llm.example/v1/chat/completions")
             self.assertEqual(http.call_args.args[3]["model"], "example-model")
             self.assertEqual(http.call_args.kwargs["timeout"], llm_timeout_seconds())
+            self.assertIn("origin", REVIEW_SYSTEM)
+            self.assertIn("prior_findings", http.call_args.args[3]["messages"][0]["content"])
+
+
+    def test_llm_parse_marks_missing_origin_unconfirmed(self):
+        data = {"summary": "s", "impact": "i", "questions": [], "findings": [
+            {"severity": "nit", "title": "t", "body": "b", "origin": "style", "evidence": "not a quote"}]}
+        result = LlmClient.parse(json.dumps(data))
+        self.assertEqual(result.findings[0].origin, "style")
+        self.assertFalse(result.findings[0].confirmed)
+        missing = {"summary": "s", "impact": "i", "questions": [], "findings": [
+            {"severity": "nit", "title": "t", "body": "b"}]}
+        self.assertEqual(LlmClient.parse(json.dumps(missing)).findings[0].origin, "uncertain")
+
+
+    def test_verify_uses_shorter_timeout(self):
+        response = json.dumps({"verdicts": [{"index": 0, "keep": False, "reason": "既存"}]})
+        env = {"IMPACT_REVIEW_LLM_BASE_URL": "https://llm.example/v1",
+               "IMPACT_REVIEW_LLM_MODEL": "example-model",
+               "IMPACT_REVIEW_LLM_API_KEY": "private"}
+        with patch.dict(os.environ, env), \
+                patch("client.request", return_value={"choices": [{"message": {"content": response},
+                                                                   "finish_reason": "stop"}]}) as http:
+            self.assertEqual(LlmClient().verify([{"index": 0}]),
+                             [{"index": 0, "keep": False, "reason": "既存"}])
+            self.assertLessEqual(http.call_args.kwargs["timeout"], 90)
+            self.assertEqual(http.call_args.kwargs["timeout"], verify_timeout_seconds())
 
 
     def test_llm_parse_accepts_markdown_wrapped_json(self):

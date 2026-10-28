@@ -8,4 +8,5 @@ def pr(head="b" * 40, base="a" * 40):
 
 
 def review(line=2):
-    return Review("要約", "影響", ["境界は？"], [Finding("must", "境界条件", "0を処理する", "a.py", line, inline=True)])
+    return Review("要約", "影響", ["境界は？"], [
+        Finding("must", "境界条件", "0を処理する", "a.py", line, inline=True, confirmed=True)])

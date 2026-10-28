@@ -75,6 +75,24 @@ class PackerTests(GitFixture, unittest.TestCase):
         self.assertEqual(Packer.units(change)[0]["text"], source.rstrip())
 
 
+    def test_direct_diff_keeps_only_lines_changed_since_prior_head(self):
+        body = "".join(f"stable line {i:02d}\n" for i in range(1, 21))
+        git(self.root, "checkout", "-q", "-b", "prior", self.base)
+        (self.root / "feature.py").write_text(body)
+        git(self.root, "add", "feature.py")
+        git(self.root, "commit", "-qm", "prior")
+        prior = git(self.root, "rev-parse", "HEAD").decode().strip()
+        git(self.root, "checkout", "-q", "-b", "headside", self.base)
+        (self.root / "feature.py").write_text(body + "brand-new line\n")
+        git(self.root, "add", "feature.py")
+        git(self.root, "commit", "-qm", "head")
+        head = git(self.root, "rev-parse", "HEAD").decode().strip()
+        packer = Packer(self.root, Config(include=["feature.py"]))
+        whole = packer.changes(prior, head)
+        since_prior = packer.changes(prior, head, direct=True)
+        self.assertEqual(whole[0].changed_new, set(range(1, 22)))
+        self.assertEqual(since_prior[0].changed_new, {21})
+
     def test_line_map_deleted_and_context(self):
         patch = "--- a\n+++ b\n@@ -10,3 +10,3 @@\n keep\n-old\n+new\n tail\n"
         right, old, new = line_map(patch)

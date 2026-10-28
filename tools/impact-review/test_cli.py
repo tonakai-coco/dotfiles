@@ -7,9 +7,12 @@ from pathlib import Path
 import yaml
 from unittest.mock import patch
 import cli
+from core import Finding, Review
 from fixtures import pr, review
 from fake_github import FakeGitHub
 from git_fixture import GitFixture
+from packer import git
+from publisher import Publisher
 
 class CliTests(GitFixture, unittest.TestCase):
     def test_manual_workflow_resolves_selected_pr_base(self):
@@ -64,8 +67,73 @@ class CliTests(GitFixture, unittest.TestCase):
             llm.return_value.review.return_value = review()
             self.assertEqual(cli.main(), 0)
             llm.return_value.review.assert_called_once()
+            llm.return_value.verify.assert_not_called()
             self.assertEqual(len(fake.reviews), 1)
             self.assertEqual(fake.comments[1][0]["line"], 2)
+            self.assertIn("必要", fake.issue_comments[0]["body"])
+
+
+    def test_cli_verifies_introduced_defects_and_drops_the_rest(self):
+        fake = FakeGitHub()
+        fake.pr = pr(self.head, self.base)
+        quote = "return 20 / x"
+        findings = [
+            Finding("nit", "名前", "好み", "a.py", 2, origin="style", evidence=quote, confirmed=False),
+            Finding("must", "ゼロ除算", "0で落ちる", "a.py", 2, origin="introduced",
+                    evidence=quote, confirmed=False),
+            Finding("nit", "余白", "好み", "a.py", 2, origin="introduced", evidence=quote, confirmed=False),
+        ]
+        with patch("cli.GitHub", return_value=fake), patch("cli.LlmClient") as llm, \
+                patch.dict(os.environ, {"GITHUB_TOKEN": "test"}), \
+                patch("sys.argv", ["cli", "--repo", "o/r", "--pr", "1", "--root", str(self.root)]), \
+                patch("sys.stdout", new_callable=io.StringIO):
+            llm.return_value.review.return_value = Review("要約", "影響", ["質問"], findings)
+            llm.return_value.verify.return_value = [
+                {"index": 0, "keep": True, "reason": "0で例外になる"},
+                {"index": 1, "keep": False, "reason": "表記の好み"},
+            ]
+            self.assertEqual(cli.main(), 0)
+        body = fake.reviews[0]["body"]
+        self.assertIn("ゼロ除算", body)
+        self.assertNotIn("名前", body)
+        self.assertNotIn("余白", body)
+        self.assertEqual(len(fake.reviews), 1)
+        self.assertEqual(fake.comments[1][0]["line"], 2)
+
+    def test_cli_second_round_drops_nits_outside_the_direct_prior_diff(self):
+        body = "".join(f"stable line {i:02d}\n" for i in range(1, 21))
+        git(self.root, "checkout", "-q", "-b", "prior", self.base)
+        (self.root / "feature.py").write_text(body)
+        git(self.root, "add", "feature.py")
+        git(self.root, "commit", "-qm", "prior")
+        prior = git(self.root, "rev-parse", "HEAD").decode().strip()
+        git(self.root, "checkout", "-q", "-b", "headside", self.base)
+        (self.root / "feature.py").write_text(body + "brand-new line\n")
+        git(self.root, "add", "feature.py")
+        git(self.root, "commit", "-qm", "head")
+        head = git(self.root, "rev-parse", "HEAD").decode().strip()
+        fake = FakeGitHub()
+        fake.pr = pr(prior, self.base)
+        Publisher(fake).publish(pr(prior, self.base), review())
+        fake.pr = pr(head, self.base)
+        findings = [
+            Finding("nit", "古い行", "既出", "feature.py", 1, origin="introduced",
+                    evidence="stable line 01", confirmed=False),
+            Finding("nit", "新しい行", "追加", "feature.py", 21, origin="introduced",
+                    evidence="brand-new line", confirmed=False),
+        ]
+        with patch("cli.GitHub", return_value=fake), patch("cli.LlmClient") as llm, \
+                patch.dict(os.environ, {"GITHUB_TOKEN": "test"}), \
+                patch("sys.argv", ["cli", "--repo", "o/r", "--pr", "1", "--root", str(self.root)]), \
+                patch("sys.stdout", new_callable=io.StringIO):
+            llm.return_value.review.return_value = Review("要約", "影響", [], findings)
+            llm.return_value.verify.return_value = [
+                {"index": 0, "keep": True, "reason": "今回入った欠落"},
+            ]
+            self.assertEqual(cli.main(), 0)
+        active = [row for row in fake.reviews if "更新済み" not in row["body"]]
+        self.assertIn("新しい行", active[-1]["body"])
+        self.assertNotIn("古い行", active[-1]["body"])
 
 
     def test_cli_prints_diagnostic_detail_for_safe_failures(self):

@@ -14,7 +14,12 @@ def safe(text: str) -> str:
 
 
 def body(review: Review) -> str:
+    counts = {name: sum(finding.severity == name for finding in review.findings) for name in LABELS}
+    count_line = "残す指摘: " + " / ".join(f"{name} {counts[name]}" for name in LABELS)
+    if not review.findings:
+        count_line += "。直すものはありません。"
     parts = ["## Impact Review", " / ".join(LABELS.values()),
+             f"ラウンド {review.round}", count_line,
              "### 要約", safe(review.summary), "### 影響", safe(review.impact), "### 指摘一覧"]
     for finding in review.findings:
         location = "inline" if finding.inline else "summary_only"
@@ -50,7 +55,8 @@ class Publisher:
         digest = hashlib.sha256(json.dumps([pr["base"]["sha"], head, content, comments],
                                           ensure_ascii=False, sort_keys=True).encode()).hexdigest()
         stamp = f"<!-- result:{digest} -->"
-        new_body = f"{MARKER}\n{stamp}\n{content}"
+        from converge import state_comment
+        new_body = f"{MARKER}\n{stamp}\n{state_comment(review.round, review.findings)}\n{content}"
         existing = next((r for r in previous if stamp in r["body"]), None)
         if existing:
             active = existing

@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
-"""Event → Gate → Packer → LlmClient → Mapper → Publisher."""
+"""Event → Gate → Packer → LlmClient → converge → Mapper → verify → Publisher → Approval."""
 import argparse
 from dataclasses import asdict
 import json
 import os
 from pathlib import Path
 import re
+import subprocess
 import sys
 
+from approval import ApprovalPublisher, judge
 from client import DiagnosticError, GitHub, LlmClient
+from converge import (
+    apply_convergence, apply_verdicts, drop_unconfirmed, keep_severe_on_verification_failure,
+    load_history, seal, verification_items)
 from core import Config, Gate
 from mapper import Mapper
 from packer import Packer, git
@@ -45,16 +50,55 @@ def main():
     if not Gate.has_targets(changes):
         return 0
     pack = packer.build(pr, changes)
+    bot = os.environ.get("IMPACT_REVIEW_BOT_LOGIN", "github-actions[bot]")
+    history = load_history(github.pages(f"/pulls/{number}/reviews"), bot, pr["head"]["sha"])
+    delta = None
+    if history.suppress and history.prior_head and re.fullmatch(r"[0-9a-f]{40,64}", history.prior_head):
+        try:
+            if args.fetch and history.prior_head not in (pr["base"]["sha"], pr["head"]["sha"]):
+                git(args.root, "fetch", "--no-tags", "origin", history.prior_head)
+            delta = {change.path: set(change.changed_new)
+                     for change in packer.changes(
+                         history.prior_head, pr["head"]["sha"], direct=True)}
+        except (subprocess.CalledProcessError, OSError, ValueError):
+            delta = None
+    pack["review_round"] = history.round
+    pack["prior_findings"] = [
+        {"path": item.get("path"), "line": item.get("line"), "severity": item.get("severity"),
+         "title": (item.get("title") or "")[:80]}
+        for item in (history.prior if history.suppress else [])[:20]]
+    if delta is not None:
+        pack["delta_paths"] = sorted(delta)
     if args.pack_only:
         print(json.dumps(pack, ensure_ascii=False, indent=2))
         return 0
-    review = LlmClient().review(pack)
+    client = LlmClient()
+    review = client.review(pack)
     review.limitations.extend(pack["limitations"])
+    if history.suppress and history.prior_head and delta is None:
+        review.limitations.append("delta_unavailable")
+    review.round = history.round
+    review = drop_unconfirmed(review, changes)
+    review = apply_convergence(review, history, delta)
     review = Mapper.map(review, changes, config, github.pages(f"/pulls/{number}/files"))
+    items = verification_items(review, changes)
+    if items:
+        try:
+            review = apply_verdicts(review, client.verify(items))
+        except (DiagnosticError, TimeoutError, ValueError):
+            review = keep_severe_on_verification_failure(review, "unavailable")
+    review = seal(review)
+    approval = judge([change.path for change in changes], review)
     if args.dry_run:
-        print(json.dumps(asdict(review), ensure_ascii=False, indent=2))
-    else:
-        print(Publisher(github, os.environ.get("IMPACT_REVIEW_BOT_LOGIN", "github-actions[bot]")).publish(pr, review))
+        payload = asdict(review)
+        payload["approval"] = asdict(approval)
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return 0
+    published = Publisher(github, bot).publish(pr, review)
+    print(published)
+    if published.startswith("skipped"):
+        return 0
+    print(ApprovalPublisher(github, bot).publish(pr, approval))
     return 0
 
 
