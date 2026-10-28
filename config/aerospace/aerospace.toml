@@ -251,6 +251,11 @@ alt-shift-j = ['join-with down', 'mode main']
 alt-shift-k = ['join-with up', 'mode main']
 alt-shift-l = ['join-with right', 'mode main']
 
+# Amical (Fn overlay): keep out of tiling so dismiss/focus restore doesn't churn layout
+[[on-window-detected]]
+if.app-id = 'com.amical.desktop'
+run = 'layout floating'
+
 [[on-window-detected]]
 if.app-id = 'com.anthropic.claudefordesktop'
 run = 'move-node-to-workspace C'
