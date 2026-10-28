@@ -71,6 +71,9 @@ class Change:
     changed_new: set[int]
 
 
+ORIGINS = {"introduced", "preexisting", "style", "uncertain"}
+
+
 @dataclass
 class Finding:
     severity: str
@@ -80,6 +83,11 @@ class Finding:
     line: int | None = None
     symbol: str | None = None
     inline: bool = False
+    # Unconfirmed findings must pass the quote check and the verification pass.
+    # Callers that already hold a kept finding set confirmed=True explicitly.
+    origin: str = "introduced"
+    evidence: str = ""
+    confirmed: bool = False
 
     def text(self):
         return f"{LABELS[self.severity]} {self.title}\n\n{self.body}"
@@ -92,6 +100,7 @@ class Review:
     questions: list[str]
     findings: list[Finding]
     limitations: list[str] = field(default_factory=list)
+    round: int = 1
 
 
 class Gate:

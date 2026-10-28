@@ -57,10 +57,11 @@ class Packer:
             self.limitations.append(f"non_utf8: {path}")
             return ""
 
-    def changes(self, base: str, head: str) -> list[Change]:
-        merge_base = git(self.root, "merge-base", base, head).decode().strip()
+    def changes(self, base: str, head: str, *, direct: bool = False) -> list[Change]:
+        # Review packs use the merge-base. Convergence uses the previous head itself.
+        start = base if direct else git(self.root, "merge-base", base, head).decode().strip()
         raw_names = git(self.root, "diff", "--no-renames", "--name-only", "-z",
-                        merge_base, head, "--").split(b"\x00")
+                        start, head, "--").split(b"\x00")
         names = []
         for raw in filter(None, raw_names):
             try:
@@ -71,14 +72,14 @@ class Packer:
         result = []
         for path in sorted(p for p in names if p and self.config.accepts(p)):
             patch = git(self.root, "diff", "--no-ext-diff", "--no-textconv",
-                        "--no-renames", "--unified=3", merge_base, head,
+                        "--no-renames", "--unified=3", start, head,
                         "--", path).decode("utf-8", errors="replace")
             if not re.search(r"^@@ ", patch, re.MULTILINE):
                 continue  # Binary, mode-only, submodule, etc.
             if len(result) >= self.config.files:
                 self.limitations.append("files_truncated")
                 break
-            old, new = self.blob(merge_base, path), self.blob(head, path)
+            old, new = self.blob(start, path), self.blob(head, path)
             result.append(Change(path, patch, old, new, *line_map(patch)))
         return result
 

@@ -63,6 +63,6 @@ jobs:
           GIT_CONFIG_COUNT: '1'
           GIT_CONFIG_KEY_0: credential.helper
           GIT_CONFIG_VALUE_0: '!f() { echo username=x-access-token; echo "password=$GITHUB_TOKEN"; }; f'
-        # タイムアウトと HTTP エラーは再試行しない。接続が応答完了前に切れたときだけ、CLI がもう 1 回呼ぶ。
-        # 既定 420 秒。2 回目が長引くと job の 10 分で打ち切られる。
+        # レビュー要求のタイムアウトと HTTP エラーは再試行しない。接続が応答完了前に切れたときだけ、その要求をもう 1 回呼ぶ。
+        # レビューは既定 420 秒。続けて検証要求を最大 90 秒行う。接続断の再試行が job の 10 分を超えると打ち切られる。
         run: python tools/impact-review/cli.py --pr "$PR_NUMBER" --fetch

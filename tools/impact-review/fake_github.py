@@ -9,6 +9,7 @@ class FakeGitHub:
         self.pr = pr()
         self.reviews = []
         self.comments = {}
+        self.issue_comments = []
         self.calls = []
         self.fail_create = False
         self.fail_delete = False
@@ -16,6 +17,8 @@ class FakeGitHub:
     def pages(self, path):
         if path.endswith("/files"):
             return [{"filename": "a.py", "patch": "@@ -1,2 +1,2 @@\n def calculate(x):\n-old\n+new\n"}]
+        if "/issues/" in path and "comments" in path:
+            return copy.deepcopy(self.issue_comments)
         if path.endswith("/reviews"):
             return copy.deepcopy(self.reviews)
         return copy.deepcopy(self.comments.get(int(path.split("/")[-2]), []))
@@ -24,6 +27,18 @@ class FakeGitHub:
         self.calls.append((method, path, payload))
         if method == "GET":
             return self.pr
+        if method == "POST" and "/issues/" in path and path.rstrip("/").endswith("/comments"):
+            row = {"id": len(self.issue_comments) + 1, "user": {"login": "github-actions[bot]"},
+                   "body": payload["body"], "html_url": f"https://example.test/issue/{len(self.issue_comments) + 1}"}
+            self.issue_comments.append(row)
+            return row
+        if method == "PATCH" and "/issues/comments/" in path:
+            cid = int(path.rstrip("/").split("/")[-1])
+            for comment in self.issue_comments:
+                if comment["id"] == cid:
+                    comment["body"] = payload["body"]
+                    return comment
+            return None
         if method == "POST":
             if self.fail_create:
                 raise ApiError(422)
