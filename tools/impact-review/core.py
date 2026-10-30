@@ -22,6 +22,7 @@ class Config:
     ignore: list[str] = field(default_factory=list)
     files: int = 30
     callers: int = 10
+    related: int = 8
     max_chars: int = 80_000
     must_important: int = 10
     nit: int = 5
@@ -37,7 +38,7 @@ class Config:
         paths, limits = raw.get("paths", {}), raw.get("limits", {})
         if not isinstance(paths, dict) or set(paths) - {"include", "ignore"}:
             raise ValueError("Invalid paths configuration")
-        maxima = {"files": 300, "callers": 100, "max_chars": 500_000,
+        maxima = {"files": 300, "callers": 100, "related": 30, "max_chars": 500_000,
                   "must_important": 10, "nit": 5, "note": 3}
         if not isinstance(limits, dict) or set(limits) - maxima.keys():
             raise ValueError("Invalid limits configuration")

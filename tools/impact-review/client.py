@@ -8,6 +8,9 @@ import urllib.parse
 import urllib.request
 
 from core import ORIGINS, Finding, LABELS, Review
+from explore import (
+    EXPLORE_SYSTEM_SUFFIX, FORCE_JSON_USER, TOOL_SCHEMAS, ExploreBudget, ExploreTools,
+    parse_tool_arguments)
 
 DEFAULT_HTTP_TIMEOUT = 90
 DEFAULT_LLM_TIMEOUT = 420
@@ -219,6 +222,88 @@ class LlmClient:
             REVIEW_SYSTEM, json.dumps(pack, ensure_ascii=False), llm_timeout_seconds())
         return self._review_from_object(data)
 
+    def review_explore(self, pack: dict, tools: ExploreTools, budget: ExploreBudget) -> Review:
+        messages = [
+            {"role": "system", "content": REVIEW_SYSTEM + EXPLORE_SYSTEM_SUFFIX},
+            {"role": "user", "content": json.dumps(pack, ensure_ascii=False)},
+        ]
+        forced = False
+        while True:
+            if budget.timed_out() and not forced:
+                budget.exhausted = True
+                messages.append({"role": "user", "content": FORCE_JSON_USER})
+                forced = True
+            use_tools = budget.can_call() and not forced
+            payload = {
+                "model": self.model,
+                "messages": messages,
+            }
+            if use_tools:
+                payload["tools"] = TOOL_SCHEMAS
+                payload["tool_choice"] = "auto"
+            else:
+                payload["response_format"] = {"type": "json_object"}
+            # SPEC B5: explore wall clock covers tool work and every completion, including forced JSON.
+            remaining = budget.remaining_time()
+            if remaining <= 0:
+                raise TimeoutError(
+                    f"Explore wall-clock budget exhausted after {budget.timeout_seconds}s")
+            timeout = max(1, min(llm_timeout_seconds(), int(remaining)))
+            response = self._post_completion(payload, timeout)
+            try:
+                choice = response["choices"][0]
+                message = choice["message"]
+                finish_reason = choice.get("finish_reason")
+            except (TypeError, KeyError, IndexError):
+                raise ValueError("LLM response missing choices[0].message") from None
+            tool_calls = message.get("tool_calls") if isinstance(message, dict) else None
+            if use_tools and isinstance(tool_calls, list) and tool_calls:
+                # Keep only dict calls and assign stable ids so every tool_call gets a reply.
+                normalized = []
+                for index, call in enumerate(tool_calls):
+                    if not isinstance(call, dict):
+                        continue
+                    call_id = call.get("id") if isinstance(call.get("id"), str) and call["id"] else f"tool-{index}"
+                    normalized.append({**call, "id": call_id})
+                if normalized:
+                    messages.append({
+                        "role": "assistant",
+                        "content": message.get("content") or None,
+                        "tool_calls": normalized,
+                    })
+                    for call in normalized:
+                        call_id = call["id"]
+                        if budget.can_call():
+                            function = (call.get("function")
+                                        if isinstance(call.get("function"), dict) else {})
+                            name = (function.get("name")
+                                    if isinstance(function.get("name"), str) else "")
+                            args = parse_tool_arguments(function.get("arguments"))
+                            result = budget.record(tools.dispatch(name, args))
+                        else:
+                            budget.exhausted = True
+                            result = "error: explore budget exhausted"
+                        messages.append({
+                            "role": "tool",
+                            "tool_call_id": call_id,
+                            "content": result,
+                        })
+                    if budget.exhausted and not forced:
+                        messages.append({"role": "user", "content": FORCE_JSON_USER})
+                        forced = True
+                    continue
+            content = message.get("content") if isinstance(message, dict) else None
+            try:
+                review = self._review_from_object(self._load_object(content, finish_reason))
+            except LlmContentJsonError:
+                if not forced:
+                    messages.append({"role": "user", "content": FORCE_JSON_USER})
+                    forced = True
+                    continue
+                raise
+            review.limitations.extend(budget.limitations())
+            return review
+
     def verify(self, items: list[dict]) -> list[dict]:
         if not items:
             return []
@@ -230,6 +315,17 @@ class LlmClient:
             raise ValueError("Invalid verification response")
         return verdicts
 
+    def _post_completion(self, payload: dict, timeout: int) -> dict:
+        connection_retries = 0
+        while True:
+            try:
+                return request(
+                    self.base + "/chat/completions", self.key, "POST", payload, timeout=timeout)
+            except ApiConnectionError:
+                if connection_retries >= 1:
+                    raise
+                connection_retries += 1
+
     def _complete_json(self, system: str, user_content: str, timeout: int) -> dict:
         payload = {
             "model": self.model,
@@ -240,17 +336,8 @@ class LlmClient:
             "response_format": {"type": "json_object"},
         }
         json_retries = 0
-        connection_retries = 0
         while True:
-            try:
-                response = request(
-                    self.base + "/chat/completions", self.key, "POST", payload, timeout=timeout)
-            except ApiConnectionError:
-                # One extra attempt. Timeouts and HTTP status errors are not retried.
-                if connection_retries >= 1:
-                    raise
-                connection_retries += 1
-                continue
+            response = self._post_completion(payload, timeout)
             try:
                 choice = response["choices"][0]
                 content = choice["message"].get("content")

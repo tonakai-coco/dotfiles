@@ -43,7 +43,10 @@ class CoreTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "config.yml"
             for text in ("api_key: secret", "limits: {max_chars: 1}",
-                         "limits: {nit: 6}", "paths: {include: '*.py'}", "limits: {files: true}"):
+                         "limits: {nit: 6}", "limits: {related: 31}",
+                         "paths: {include: '*.py'}", "limits: {files: true}"):
                 path.write_text(text)
                 with self.assertRaises(ValueError):
                     Config.load(path)
+            path.write_text("limits: {related: 4}")
+            self.assertEqual(Config.load(path).related, 4)
