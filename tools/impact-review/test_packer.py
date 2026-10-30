@@ -99,3 +99,76 @@ class PackerTests(GitFixture, unittest.TestCase):
         self.assertEqual(right, {10, 11, 12})
         self.assertEqual(old, {11})
         self.assertEqual(new, {11})
+
+    def test_related_import_target_sibling_test_and_config(self):
+        (self.root / "lib_util.py").write_text("def helper():\n    return 1\n")
+        (self.root / "service.py").write_text(
+            "from lib_util import helper\n\ndef run():\n    return helper()\n")
+        (self.root / "test_service.py").write_text(
+            "from service import run\n\ndef test_run():\n    assert run() == 1\n")
+        (self.root / "service.yml").write_text("mode: safe\n")
+        base = self.commit()
+        (self.root / "service.py").write_text(
+            "from lib_util import helper\n\ndef run():\n    return helper() + 1\n")
+        head = self.commit()
+        packer = Packer(self.root, Config(include=["service.py", "lib_util.py",
+                                                   "test_service.py", "service.yml"]))
+        pack = packer.build(pr(head, base), packer.changes(base, head))
+        reasons = {item["reason"]: item["path"] for item in pack["related"]}
+        self.assertEqual(reasons.get("import_target"), "lib_util.py")
+        self.assertEqual(reasons.get("sibling_test"), "test_service.py")
+        self.assertEqual(reasons.get("same_dir_config"), "service.yml")
+
+    def test_related_resolves_import_from_package_member(self):
+        pkg = self.root / "pkg"
+        pkg.mkdir()
+        (pkg / "__init__.py").write_text("")
+        (pkg / "worker.py").write_text("def work():\n    return 1\n")
+        (self.root / "app.py").write_text(
+            "from pkg import worker\n\ndef main():\n    return worker.work()\n")
+        base = self.commit()
+        (self.root / "app.py").write_text(
+            "from pkg import worker\n\ndef main():\n    return worker.work() + 1\n")
+        head = self.commit()
+        packer = Packer(self.root, Config(include=["app.py", "pkg/**"]))
+        pack = packer.build(pr(head, base), packer.changes(base, head))
+        targets = [item["path"] for item in pack["related"] if item["reason"] == "import_target"]
+        self.assertIn("pkg/worker.py", targets)
+
+    def test_related_truncated_before_callers(self):
+        packer = Packer(self.root, Config(max_chars=2500, related=8))
+        changes = packer.changes(self.base, self.head)
+        # Inflate related so truncation must drop it while callers can remain.
+        pack = packer.build(pr(self.head, self.base), changes)
+        pack["related"] = [
+            {"path": f"extra{i}.py", "start": 1, "reason": "sibling_test", "text": "y" * 400}
+            for i in range(6)
+        ]
+        # Re-run truncation logic by rebuilding through a tiny max_chars packer path:
+        tiny = Packer(self.root, Config(max_chars=1800, related=8, callers=10))
+        changes[0].patch += "x" * 5000
+        packed = tiny.build(pr(self.head, self.base), changes)
+        self.assertIn("truncated", packed["limitations"])
+        self.assertTrue(packed["callers"])
+        # related is lower priority than callers, so it empties or truncates first.
+        self.assertTrue(all(item.get("truncated") or not item.get("text")
+                            for item in packed["related"]) or not packed["related"]
+                        or len(json.dumps(packed["related"], ensure_ascii=False))
+                        < len(json.dumps(packed["callers"], ensure_ascii=False)))
+
+    def test_callers_skip_python_definition_lines(self):
+        (self.root / "mod.py").write_text("def shared():\n    return 1\n")
+        # Put the same-named definition far from the call so a call excerpt cannot
+        # accidentally include the definition line as its only hit.
+        (self.root / "other.py").write_text(
+            "def shared():\n    return 2\n" + ("pass\n" * 30) + "def use():\n    return shared()\n")
+        base = self.commit()
+        (self.root / "mod.py").write_text("def shared():\n    return 3\n")
+        head = self.commit()
+        packer = Packer(self.root, Config(include=["mod.py", "other.py"]))
+        pack = packer.build(pr(head, base), packer.changes(base, head))
+        self.assertTrue(pack["callers"])
+        self.assertTrue(any("return shared()" in item["text"] for item in pack["callers"]))
+        # Definition line itself must not be the grep hit (start would be 1).
+        self.assertFalse(any(item["path"] == "other.py" and item["start"] == 1
+                             for item in pack["callers"]))

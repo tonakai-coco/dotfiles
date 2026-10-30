@@ -3,6 +3,7 @@
 PR の diff、変更単位、参照元の抜粋を OpenAI 互換 LLM に渡し、要約とインライン指摘を投稿します。
 追加 SaaS、索引サーバー、埋め込み検索は使用しません。Python 3.10 以上が必要です。
 何を残し、何を見送ったかは [ADR 0004](../../docs/ADR/0004-impact-review-finding-policy.md) に記録しています。
+影響探索（`related` 強化と bounded tool-use）の方針は [ADR 0005](../../docs/ADR/0005-impact-review-bounded-explore.md) と [SPEC-explore](SPEC-explore.md) にあります。Phase A（`related` / callers フィルタ）は実装済み、Phase B（`--explore`）はプロトタイプ実装です。
 
 ## 導入
 
@@ -40,6 +41,7 @@ paths:
 limits:
   files: 30
   callers: 10
+  related: 8
   max_chars: 80000
   must_important: 10
   nit: 5
@@ -51,7 +53,7 @@ limits:
 ignore が include より優先します。バイナリ、主要 lock ファイル、vendor / node_modules / dist / build、
 `.min.js` / `.map` / `.generated.*` / `.g.*` は標準除外です。固有の生成物は ignore に追加します。
 
-files / callers / max_chars は変更可能です（安全上限: 300 / 100 / 500,000、max_chars の下限: 2,000）。
+files / callers / related / max_chars は変更可能です（安全上限: 300 / 100 / 30 / 500,000、max_chars の下限: 2,000）。
 重大度の上限は仕様の 10 / 5 / 3 まで下げられます。must を important より優先して残します。
 80,000 文字はトークン数ではありません。モデルのコンテキスト容量に応じ、応答用の余裕を含めて下げてください。
 
@@ -72,8 +74,10 @@ Python の関数・クラスは AST で全文を取得します。削除され�
 それ以外の言語や構文解析できない部分は変更行前後の最大約 40 行を取得し、`complete: false` と明記します。
 一部の宣言名も簡易抽出します。caller は抽出シンボルの単語一致検索で、実際の呼び出しである保証はありません。
 変更単位内の一致は除外し、最大 10 抜粋・各最大 40 行に制限します。1 MB 超の blob と非 UTF-8 は全文取得しません。
-`related` は v0 では空です。保持優先度は **変更単位 → callers → related → diff** とし、低優先度の末尾から削ります。
+`related` は import 先・対になるテスト・同ディレクトリ設定の抜粋を最大 `limits.related`（既定 8）件入れます。
+保持優先度は **変更単位 → callers → related → diff** とし、低優先度の末尾から削ります。
 省略は pack と Review の制限欄へ残します。
+`--explore` は読み取り専用 tool-use で追加探索します（既定 CI では無効）。`--pack-only` と同時指定はできません。
 
 LLM の行番号は RIGHT 側として扱います。削除側、diff 外の caller、パス不一致、行番号不正、GitHub 側 patch 欠落は
 `summary_only` として本文へ残します。座標が合っていても、指摘内容が正しいことにはなりません。
@@ -132,6 +136,10 @@ python3 -m venv .venv
 # 3 つの IMPACT_REVIEW_LLM_* 環境変数を設定して、投稿せず LLM 結果を確認
 .venv/bin/python tools/impact-review/cli.py \
   --repo OWNER/REPO --pr 123 --fetch --dry-run
+
+# 読み取り専用 tool-use 探索（接続先が tools 対応である必要あり。既定 CI では使わない）
+.venv/bin/python tools/impact-review/cli.py \
+  --repo OWNER/REPO --pr 123 --fetch --explore --dry-run
 
 # オフラインの受け入れテスト（API・LLM 通信なし）
 .venv/bin/python -m unittest discover -s tools/impact-review -p 'test_*.py' -v

@@ -15,9 +15,24 @@ from converge import (
     apply_convergence, apply_verdicts, drop_unconfirmed, keep_severe_on_verification_failure,
     load_history, seal, verification_items)
 from core import Config, Gate
+from explore import ExploreBudget, ExploreTools
 from mapper import Mapper
 from packer import Packer, git
 from publisher import Publisher
+
+
+def _env_flag(name: str) -> bool:
+    return os.environ.get(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _env_int(name: str, default: int) -> int:
+    raw = os.environ.get(name)
+    if raw is None or raw == "":
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        raise ValueError(f"{name} must be an integer") from None
 
 
 def main():
@@ -30,7 +45,15 @@ def main():
     parser.add_argument("--fetch", action="store_true", help="Fetch PR base/head into local object store")
     parser.add_argument("--pack-only", action="store_true", help="Print pack without LLM or writes")
     parser.add_argument("--dry-run", action="store_true", help="Call LLM but do not publish")
+    parser.add_argument("--explore", action="store_true", default=None,
+                        help="Enable bounded read-only tool-use explore loop")
+    parser.add_argument("--explore-max-calls", type=int)
+    parser.add_argument("--explore-max-chars", type=int)
+    parser.add_argument("--explore-timeout-seconds", type=int)
     args = parser.parse_args()
+    explore = bool(args.explore) if args.explore is not None else _env_flag("IMPACT_REVIEW_EXPLORE")
+    if args.pack_only and explore:
+        parser.error("--pack-only and --explore cannot be combined")
     event = json.loads(args.event.read_text()) if args.event else {}
     number = args.pr or event.get("pull_request", {}).get("number")
     if not number or number < 1 or not args.repo or not re.fullmatch(r"[\w.-]+/[\w.-]+", args.repo):
@@ -73,7 +96,19 @@ def main():
         print(json.dumps(pack, ensure_ascii=False, indent=2))
         return 0
     client = LlmClient()
-    review = client.review(pack)
+    if explore:
+        budget = ExploreBudget.from_values(
+            args.explore_max_calls if args.explore_max_calls is not None
+            else _env_int("IMPACT_REVIEW_EXPLORE_MAX_CALLS", 8),
+            args.explore_max_chars if args.explore_max_chars is not None
+            else _env_int("IMPACT_REVIEW_EXPLORE_MAX_CHARS", 40_000),
+            args.explore_timeout_seconds if args.explore_timeout_seconds is not None
+            else _env_int("IMPACT_REVIEW_EXPLORE_TIMEOUT_SECONDS", 120),
+        )
+        tools = ExploreTools(args.root, config, pr["base"]["sha"], pr["head"]["sha"])
+        review = client.review_explore(pack, tools, budget)
+    else:
+        review = client.review(pack)
     review.limitations.extend(pack["limitations"])
     if history.suppress and history.prior_head and delta is None:
         review.limitations.append("delta_unavailable")
