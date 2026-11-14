@@ -55,6 +55,26 @@ make check     # OS検出結果を確認
 make unlink    # リンクを削除
 ```
 
+## 秘密情報の検査（gitleaks）
+
+commit 時に、ステージした差分を gitleaks で検査します。秘密情報らしい文字列があると commit は止まります。
+
+新しい Mac では、クローン後に次を実行してください。
+
+```bash
+brew install gitleaks
+git config core.hooksPath .githooks
+```
+
+mise で CI と同じ 8.30.1 を入れる場合は、`brew install` の代わりに次を実行します。
+
+```bash
+mise use -g gitleaks@8.30.1
+git config core.hooksPath .githooks
+```
+
+`gitleaks` が PATH に無い状態でフックが有効だと、commit は中止されます。
+
 ## 管理対象
 
 | 設定 | パス | 対象OS |
