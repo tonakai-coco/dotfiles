@@ -1,14 +1,4 @@
 {
-  "enabledPlugins": {
-    "example-skills@anthropic-agent-skills": true,
-    "document-skills@anthropic-agent-skills": true
-  },
-  "language": "Japanese",
-  "editorMode": "vim",
-  "statusLine": {
-    "type": "command",
-    "command": "pwsh -NoProfile -NonInteractive -File ~/.claude/statusline-command.ps1"
-  },
   "hooks": {
     "Stop": [
       {
@@ -18,7 +8,192 @@
             "command": "powershell.exe -NoProfile -Command \"Import-Module BurntToast; New-BurntToastNotification -Text 'Claude Code', 'エージェントの作業が停止しました'\""
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -NonInteractive -Command \"if (Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/orca-agent-hook.exe') -PathType Leaf) { & (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/orca-agent-hook.exe') claude }\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -NonInteractive -Command \"if (Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/orca-agent-hook.exe') -PathType Leaf) { & (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/orca-agent-hook.exe') claude }\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -NonInteractive -Command \"if (Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/orca-agent-hook.exe') -PathType Leaf) { & (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/orca-agent-hook.exe') claude }\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -NonInteractive -Command \"if (Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/orca-agent-hook.exe') -PathType Leaf) { & (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/orca-agent-hook.exe') claude }\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -NonInteractive -Command \"if (Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/orca-agent-hook.exe') -PathType Leaf) { & (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/orca-agent-hook.exe') claude }\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -NonInteractive -Command \"if (Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/orca-agent-hook.exe') -PathType Leaf) { & (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/orca-agent-hook.exe') claude }\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "TeammateIdle": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -NonInteractive -Command \"if (Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/orca-agent-hook.exe') -PathType Leaf) { & (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/orca-agent-hook.exe') claude }\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -NonInteractive -Command \"if (Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/orca-agent-hook.exe') -PathType Leaf) { & (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/orca-agent-hook.exe') claude }\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -NonInteractive -Command \"if (Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/orca-agent-hook.exe') -PathType Leaf) { & (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/orca-agent-hook.exe') claude }\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -NonInteractive -Command \"if (Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/orca-agent-hook.exe') -PathType Leaf) { & (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/orca-agent-hook.exe') claude }\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -NonInteractive -Command \"if (Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/orca-agent-hook.exe') -PathType Leaf) { & (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/orca-agent-hook.exe') claude }\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -NonInteractive -Command \"if (Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/orca-agent-hook.exe') -PathType Leaf) { & (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/orca-agent-hook.exe') claude }\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Elicitation": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -NonInteractive -Command \"if (Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/orca-agent-hook.exe') -PathType Leaf) { & (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/orca-agent-hook.exe') claude }\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "ElicitationResult": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -NonInteractive -Command \"if (Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/orca-agent-hook.exe') -PathType Leaf) { & (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/orca-agent-hook.exe') claude }\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -NonInteractive -Command \"if (Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/orca-agent-hook.exe') -PathType Leaf) { & (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/orca-agent-hook.exe') claude }\"",
+            "timeout": 10
+          }
+        ]
       }
     ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "pwsh -NoProfile -NonInteractive -File ~/.claude/statusline-command.ps1"
+  },
+  "enabledPlugins": {
+    "example-skills@anthropic-agent-skills": true,
+    "document-skills@anthropic-agent-skills": true
+  },
+  "language": "Japanese",
+  "theme": "dark-daltonized",
+  "editorMode": "vim",
+  "modelSettings": {
+    "claude-opus-5-5": {
+      "effortLevel": "medium"
+    }
   }
 }
