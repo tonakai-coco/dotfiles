@@ -8,6 +8,103 @@
             "command": "powershell.exe -NoProfile -Command \"Import-Module BurntToast; New-BurntToastNotification -Text 'Codex CLI', 'Codexの処理が停止しました' -Sound 'Alarm2'\""
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -NonInteractive -Command \"if (Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/codex-hook.cmd') -PathType Leaf) { & (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/codex-hook.cmd') }\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -NonInteractive -Command \"if (Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/codex-hook.cmd') -PathType Leaf) { & (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/codex-hook.cmd') }\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -NonInteractive -Command \"if (Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/codex-hook.cmd') -PathType Leaf) { & (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/codex-hook.cmd') }\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -NonInteractive -Command \"if (Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/codex-hook.cmd') -PathType Leaf) { & (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/codex-hook.cmd') }\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -NonInteractive -Command \"if (Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/codex-hook.cmd') -PathType Leaf) { & (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/codex-hook.cmd') }\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -NonInteractive -Command \"if (Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/codex-hook.cmd') -PathType Leaf) { & (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/codex-hook.cmd') }\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -NonInteractive -Command \"if (Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/codex-hook.cmd') -PathType Leaf) { & (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/codex-hook.cmd') }\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -NonInteractive -Command \"if (Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/codex-hook.cmd') -PathType Leaf) { & (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/codex-hook.cmd') }\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Interrupt": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh -NoProfile -NonInteractive -Command \"if (Test-Path -LiteralPath (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/codex-hook.cmd') -PathType Leaf) { & (Join-Path ([Environment]::GetFolderPath('UserProfile')) '.orca/agent-hooks/codex-hook.cmd') }\"",
+            "timeout": 3
+          }
+        ]
       }
     ]
   }
