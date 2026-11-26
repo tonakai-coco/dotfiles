@@ -186,14 +186,26 @@
   },
   "enabledPlugins": {
     "example-skills@anthropic-agent-skills": true,
-    "document-skills@anthropic-agent-skills": true
+    "document-skills@anthropic-agent-skills": true,
+    "development-workflows@tonakai-coco-ai-plugins": true,
+    "notion-workflows@tonakai-coco-ai-plugins": true,
+    "security-audit-workflows@tonakai-coco-ai-plugins": true
+  },
+  "extraKnownMarketplaces": {
+    "tonakai-coco-ai-plugins": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/tonakai-coco/ai-plugins.git"
+      }
+    }
   },
   "language": "Japanese",
-  "theme": "dark-daltonized",
-  "editorMode": "vim",
   "modelSettings": {
     "claude-opus-5-5": {
-      "effortLevel": "medium"
+      "effortLevel": "medium",
+      "autoCompactWindow": 500000
     }
-  }
+  },
+  "theme": "dark-daltonized",
+  "editorMode": "vim"
 }
