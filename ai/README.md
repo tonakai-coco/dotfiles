@@ -12,6 +12,7 @@ ai/
 │   ├── settings.json                # Claude Code ユーザー設定（macOS / Linux）
 │   ├── statusline-command.sh        # ステータスライン表示スクリプト（macOS / Linux）
 │   └── windows/
+│       ├── keybindings.json         # Claude Code キーバインド（Windows）
 │       ├── settings.json            # Claude Code ユーザー設定（Windows）
 │       └── statusline-command.ps1   # ステータスライン表示スクリプト（Windows / pwsh）
 ├── codex/
@@ -30,6 +31,7 @@ ai/
 | ------------------------------------------ | ---------------------------------- | ------------- |
 | `ai/claude/settings.json`                  | `~/.claude/settings.json`          | macOS / Linux |
 | `ai/claude/statusline-command.sh`          | `~/.claude/statusline-command.sh`  | macOS / Linux |
+| `ai/claude/windows/keybindings.json`       | `~/.claude/keybindings.json`       | Windows       |
 | `ai/claude/windows/settings.json`          | `~/.claude/settings.json`          | Windows       |
 | `ai/claude/windows/statusline-command.ps1` | `~/.claude/statusline-command.ps1` | Windows       |
 | `ai/codex/hooks.json`                      | `~/.codex/hooks.json`              | macOS / Linux |
@@ -37,7 +39,7 @@ ai/
 | `ai/copilot/agents/`                       | `~/.copilot/agents/`               | Windows       |
 | `ai/copilot/hooks/notify.json`             | `~/.copilot/hooks/notify.json`     | Windows       |
 
-上記の非スキル設定・フックは `make link` で自動適用します。スキルについてはMakefileからリンクせず、`*/ai-plugins` のplugin内スキルを必要なプロジェクトへ手動でコピーします。
+Windows の Claude Code 設定（`ai/claude/windows/` の3ファイル）は `make link` で `~/.claude/` へシンボリックリンクします。既存の通常ファイルを置き換えるときは `make link FORCE=1` を使います。それ以外の非スキル設定・フックは手動でコピーします。スキルについてはMakefileからリンクせず、`*/ai-plugins` のplugin内スキルを必要なプロジェクトへ手動でコピーします。
 
 ## 除外ファイル
 
