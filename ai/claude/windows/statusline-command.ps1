@@ -26,7 +26,22 @@ $parts = @()
 if ($model) { $parts += $model }
 if ($cwd)   { $parts += (Split-Path -Leaf $cwd) }
 if ($gitBranch) { $parts += $gitBranch }
-if ($null -ne $usedPct) { $parts += "ctx $([math]::Round($usedPct))%" }
+# used_percentage が null の場合（コンパクト直後や応答待ちなど）のフォールバック
+$cacheFile = Join-Path $env:TEMP "claude-statusline-ctx-$($json.session_id).txt"
+$ctxText = $null
+if ($null -eq $usedPct) {
+    $size = $json.context_window.context_window_size
+    $tok  = $json.context_window.total_input_tokens
+    if ($size -and $tok) { $usedPct = $tok * 100.0 / $size }
+}
+if ($null -ne $usedPct) {
+    $ctxText = "ctx $([math]::Round($usedPct))%"
+    try { Set-Content -LiteralPath $cacheFile -Value $ctxText -Encoding UTF8 -ErrorAction Stop } catch {}
+} elseif (Test-Path -LiteralPath $cacheFile) {
+    # 直前の値を残す（~ は最新値でない印）
+    $ctxText = "~" + (Get-Content -LiteralPath $cacheFile -Raw).Trim()
+}
+if ($ctxText) { $parts += $ctxText }
 if ($null -ne $fiveHrPct)   { $parts += "5h $([math]::Round($fiveHrPct))%" }
 if ($null -ne $sevenDayPct) { $parts += "7d $([math]::Round($sevenDayPct))%" }
 
