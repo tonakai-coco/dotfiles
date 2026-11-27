@@ -16,6 +16,7 @@ Claude Code とのやり取りの途中で、ステータスラインの ctx（�
 - それも取れないときは、`$env:TEMP\claude-statusline-ctx-<session_id>.txt` に保存した直前の値を `~` 付きで表示する（`~` は最新値でない印）
 - 使用率が取れたときはキャッシュファイルを更新する
 - キャッシュファイル名に使う `session_id` は英数字とハイフンだけ残す。空になったらキャッシュを使わない（レビュー指摘への対応）
+- フォールバック計算ではトークン数 0 も有効値として扱い `ctx 0%` を表示する。`context_window_size` が 0 以下のときは計算しない（レビュー指摘への対応）
 
 ## 対象外
 
@@ -31,5 +32,7 @@ Claude Code とのやり取りの途中で、ステータスラインの ctx（�
   - `context_window` なし・キャッシュなし → ctx 表示なし、エラーなし
   - `session_id: "../../evil:x"` → `$env:TEMP\claude-statusline-ctx-evilx.txt` にだけ書き込まれる
   - `session_id` が空または無い → キャッシュを読み書きしない
+  - キャッシュ `ctx 42%` がある状態で `total_input_tokens: 0` → `ctx 0%`
+  - `context_window_size: 0` → 計算せずキャッシュの値を `~` 付きで表示
 - 実際のセッションでの表示消失の再現は未実施
 - リンク定義の変更がないため `make check` / `make status` は未実施

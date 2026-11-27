@@ -37,7 +37,8 @@ $ctxText = $null
 if ($null -eq $usedPct) {
     $size = $json.context_window.context_window_size
     $tok  = $json.context_window.total_input_tokens
-    if ($size -and $tok) { $usedPct = $tok * 100.0 / $size }
+    # トークン数 0 も有効値として扱う（0% を表示する）。サイズ 0 は除算できないので除外
+    if ($null -ne $tok -and $size -gt 0) { $usedPct = $tok * 100.0 / $size }
 }
 if ($null -ne $usedPct) {
     $ctxText = "ctx $([math]::Round($usedPct))%"
