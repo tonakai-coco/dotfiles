@@ -15,6 +15,7 @@ Claude Code とのやり取りの途中で、ステータスラインの ctx（�
 - `used_percentage` が null のときは `total_input_tokens / context_window_size` から使用率を計算する
 - それも取れないときは、`$env:TEMP\claude-statusline-ctx-<session_id>.txt` に保存した直前の値を `~` 付きで表示する（`~` は最新値でない印）
 - 使用率が取れたときはキャッシュファイルを更新する
+- キャッシュファイル名に使う `session_id` は英数字とハイフンだけ残す。空になったらキャッシュを使わない（レビュー指摘への対応）
 
 ## 対象外
 
@@ -28,5 +29,7 @@ Claude Code とのやり取りの途中で、ステータスラインの ctx（�
   - 同じ session で `used_percentage: null` → `~ctx 42%`
   - `used_percentage: null` で `total_input_tokens: 50000` / `context_window_size: 200000` → `ctx 25%`
   - `context_window` なし・キャッシュなし → ctx 表示なし、エラーなし
+  - `session_id: "../../evil:x"` → `$env:TEMP\claude-statusline-ctx-evilx.txt` にだけ書き込まれる
+  - `session_id` が空または無い → キャッシュを読み書きしない
 - 実際のセッションでの表示消失の再現は未実施
 - リンク定義の変更がないため `make check` / `make status` は未実施
