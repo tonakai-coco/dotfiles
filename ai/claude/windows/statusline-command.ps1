@@ -29,7 +29,10 @@ if ($gitBranch) { $parts += $gitBranch }
 # used_percentage が null の場合（コンパクト直後や応答待ちなど）のフォールバック
 # session_id は英数字とハイフンだけ残し、TEMP 外のパスを作れないようにする
 $sessionKey = "$($json.session_id)" -replace '[^A-Za-z0-9-]', ''
-$cacheFile = if ($sessionKey) { Join-Path $env:TEMP "claude-statusline-ctx-$sessionKey.txt" } else { $null }
+$cacheFile = $null
+if ($sessionKey -and $env:TEMP) {
+    try { $cacheFile = Join-Path $env:TEMP "claude-statusline-ctx-$sessionKey.txt" } catch {}
+}
 $ctxText = $null
 if ($null -eq $usedPct) {
     $size = $json.context_window.context_window_size
@@ -42,8 +45,8 @@ if ($null -ne $usedPct) {
         try { Set-Content -LiteralPath $cacheFile -Value $ctxText -Encoding UTF8 -ErrorAction Stop } catch {}
     }
 } elseif ($cacheFile -and (Test-Path -LiteralPath $cacheFile)) {
-    # 直前の値を残す（~ は最新値でない印）
-    $ctxText = "~" + (Get-Content -LiteralPath $cacheFile -Raw).Trim()
+    # 直前の値を残す（~ は最新値でない印）。読めなければ黙って進む
+    try { $ctxText = "~" + (Get-Content -LiteralPath $cacheFile -Raw -ErrorAction Stop).Trim() } catch {}
 }
 if ($ctxText) { $parts += $ctxText }
 if ($null -ne $fiveHrPct)   { $parts += "5h $([math]::Round($fiveHrPct))%" }
