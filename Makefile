@@ -93,6 +93,10 @@ FISH_SUBDIRS := functions completions conf.d
 # karabiner: Only custom rules are managed (karabiner.json is env-dependent)
 KARABINER_FILES := numpad.json
 
+# Claude Code (Windows): Linked per-file into ~/.claude
+CLAUDE_DIR := $(HOME)/.claude
+CLAUDE_WINDOWS_FILES := settings.json statusline-command.ps1 keybindings.json
+
 # -----------------------------------------------------------------------------
 # Option flags
 # -----------------------------------------------------------------------------
@@ -127,7 +131,7 @@ COLOR_CYAN := \033[36m
         check status clean \
         _ensure-xdg-config _create-link _remove-link \
         _link-fish-files _unlink-fish-files \
-        _link-karabiner-files _unlink-karabiner-files \
+        _link-karabiner-files _unlink-karabiner-files         _link-claude-windows-files _unlink-claude-windows-files \
         _cleanup-migrated-ai-skill-links
 
 # -----------------------------------------------------------------------------
@@ -277,8 +281,13 @@ ifneq ($(DETECTED_OS),windows)
 		fi; \
 	done
 endif
+ifeq ($(DETECTED_OS),windows)
 	$(ECHO) ""
-	$(ECHO) "$(COLOR_CYAN)AI tool configurations are now managed manually as regular files.$(COLOR_RESET)"
+	$(ECHO) "$(COLOR_CYAN)[File-level: Claude Code]$(COLOR_RESET)"
+	$(Q)for file in $(CLAUDE_WINDOWS_FILES); do 		target="$(CLAUDE_DIR)/$$file"; 		if [ -L "$$target" ]; then 			link_dest=$$(readlink "$$target"); 			echo -e "  $(COLOR_GREEN)[LINK]$(COLOR_RESET) $$target -> $$link_dest"; 		elif [ -e "$$target" ]; then 			echo -e "  $(COLOR_YELLOW)[FILE]$(COLOR_RESET) $$target (regular file)"; 		else 			echo -e "  $(COLOR_RED)[NONE]$(COLOR_RESET) $$target (not found)"; 		fi; 	done
+endif
+	$(ECHO) ""
+	$(ECHO) "$(COLOR_CYAN)Other AI tool configurations are managed manually as regular files.$(COLOR_RESET)"
 	$(ECHO) "Please copy the desired configuration files from the 'ai/' directory in this repository"
 	$(ECHO) "to the appropriate locations in your home directory (e.g., ~/.codex/, ~/.claude/, ~/.copilot/)."
 	$(ECHO) "Existing symlinks, if any, must be removed and replaced with the copied files."
@@ -371,6 +380,9 @@ link-windows: _ensure-xdg-config
 		DEST="$(LOCALAPPDATA)/nvim" \
 		FORCE=$(FORCE)
 	$(ECHO) ""
+	$(ECHO) "$(COLOR_CYAN)[File-level: Claude Code]$(COLOR_RESET)"
+	$(Q)$(MAKE) _link-claude-windows-files FORCE=$(FORCE)
+	$(ECHO) ""
 	$(ECHO) "$(COLOR_GREEN)Windows: Done$(COLOR_RESET)"
 	$(Q)$(MAKE) _cleanup-migrated-ai-skill-links
 
@@ -414,6 +426,7 @@ unlink-windows:
 		$(MAKE) _remove-link DEST="$(XDG_CONFIG_HOME)/$$config"; \
 	done
 	$(Q)$(MAKE) _remove-link DEST="$(LOCALAPPDATA)/nvim"
+	$(Q)$(MAKE) _unlink-claude-windows-files
 	$(Q)$(MAKE) _cleanup-migrated-ai-skill-links
 	$(ECHO) "$(COLOR_GREEN)Windows: Unlink complete$(COLOR_RESET)"
 
@@ -439,7 +452,7 @@ _create-link:
 	@# Check destination state and handle accordingly
 	$(Q)if [ -L "$(DEST)" ]; then \
 		current=$$(readlink "$(DEST)"); \
-		if [ "$$current" = "$(SRC)" ]; then \
+		if [ "$$current" = "$(SRC)" ] || [ "$(DEST)" -ef "$(SRC)" ]; then \
 			echo -e "  $(COLOR_GREEN)[OK]$(COLOR_RESET)   Already linked: $(DEST)"; \
 			exit 0; \
 		fi; \
@@ -551,6 +564,16 @@ _unlink-karabiner-files:
 		dest="$(XDG_CONFIG_HOME)/karabiner/$$file"; \
 		$(MAKE) _remove-link DEST="$$dest"; \
 	done
+
+# -----------------------------------------------------------------------------
+# Internal: Claude Code file-level links (Windows)
+# -----------------------------------------------------------------------------
+_link-claude-windows-files:
+	$(Q)mkdir -p "$(CLAUDE_DIR)"
+	$(Q)for file in $(CLAUDE_WINDOWS_FILES); do 		$(MAKE) _create-link 			SRC="$(AI_DIR)/claude/windows/$$file" 			DEST="$(CLAUDE_DIR)/$$file" 			FORCE=$(FORCE); 	done
+
+_unlink-claude-windows-files:
+	$(Q)for file in $(CLAUDE_WINDOWS_FILES); do 		$(MAKE) _remove-link DEST="$(CLAUDE_DIR)/$$file"; 	done
 
 # -----------------------------------------------------------------------------
 # Internal: Remove skill symlinks from the pre-ai-plugins layout
