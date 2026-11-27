@@ -22,9 +22,6 @@ require("lazy").setup({
       },
     },
     -- import any extras modules here
-    -- ai
-    { import = "lazyvim.plugins.extras.ai.copilot" },
-    { import = "lazyvim.plugins.extras.ai.copilot-chat" },
     -- coding
     { import = "lazyvim.plugins.extras.coding.neogen" },
     { import = "lazyvim.plugins.extras.coding.yanky" },
